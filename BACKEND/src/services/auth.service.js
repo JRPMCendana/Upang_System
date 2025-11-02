@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User.model');
 const config = require('../config/config');
 const DbUtils = require('../utils/db.utils');
+const EmailService = require('./email.service');
 
 class AuthService {
   static async login(email, password) {
@@ -129,6 +130,18 @@ class AuthService {
         isActive: true,
         status: 'active'
       });
+
+      try {
+        await EmailService.sendAccountCreatedEmail(
+          email,
+          password,
+          firstName || '',
+          lastName || '',
+          role
+        );
+      } catch (emailError) {
+        console.error('Failed to send account creation email:', emailError);
+      }
 
       return {
         id: newUser._id,
