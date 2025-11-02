@@ -6,6 +6,17 @@ import { Header } from "@/components/dashboard/header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Users as UsersIcon, Search, Plus, Shield, Mail, MoreVertical, Pencil, Trash2, UserX, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
@@ -29,6 +40,7 @@ export default function UsersPage() {
   const [totalItems, setTotalItems] = useState(0)
   const limit = 10
   const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false)
+  const [userToDelete, setUserToDelete] = useState<User | null>(null)
 
   const isAdmin = user?.role === "admin"
   const isTeacher = user?.role === "teacher"
@@ -90,6 +102,13 @@ export default function UsersPage() {
         variant: "destructive",
       })
     }
+  }
+
+  const confirmDelete = async () => {
+    if (!userToDelete) return
+    
+    await handleStatusChange(userToDelete._id, "deleted")
+    setUserToDelete(null)
   }
 
   if (!isAuthenticated || (user && user.role !== "admin" && user.role !== "teacher")) return null
@@ -168,8 +187,8 @@ export default function UsersPage() {
 
             {/* Filters */}
             <Card className="p-4 space-y-4">
-              <div className="flex flex-col sm:flex-row gap-4 items-stretch">
-                <div className="relative flex-1">
+              <div className="flex flex-col sm:flex-row gap-4 items-center">
+                <div className="relative flex-1 w-full">
                   <Search className="absolute left-3 top-3 w-5 h-5 text-text-secondary" />
                   <Input
                     placeholder="Search by name, username or email..."
@@ -178,41 +197,47 @@ export default function UsersPage() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex gap-3 items-center w-full sm:w-auto">
                   {isAdmin && (
-                    <div className="flex gap-2">
-                      {["all", "student", "teacher"].map((r) => (
-                        <Button
-                          key={r}
-                          variant={roleFilter === (r as any) ? "default" : "outline"}
-                          size="sm"
-                          className="capitalize"
-                          onClick={() => {
-                            setRoleFilter(r as any)
-                            setCurrentPage(1)
-                          }}
-                        >
-                          {r}
-                        </Button>
-                      ))}
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-text-secondary whitespace-nowrap">Role:</span>
+                      <Select
+                        value={roleFilter}
+                        onValueChange={(value: any) => {
+                          setRoleFilter(value)
+                          setCurrentPage(1)
+                        }}
+                      >
+                        <SelectTrigger className="w-[140px]">
+                          <SelectValue placeholder="Select role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Roles</SelectItem>
+                          <SelectItem value="student">Student</SelectItem>
+                          <SelectItem value="teacher">Teacher</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   )}
                   {isAdmin && (
-                    <div className="flex gap-2">
-                      {["active", "deactivated", "deleted"].map((s) => (
-                        <Button
-                          key={s}
-                          variant={statusFilter === (s as any) ? "default" : "outline"}
-                          size="sm"
-                          className="capitalize"
-                          onClick={() => {
-                            setStatusFilter(s as any)
-                            setCurrentPage(1)
-                          }}
-                        >
-                          {s}
-                        </Button>
-                      ))}
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-text-secondary whitespace-nowrap">Status:</span>
+                      <Select
+                        value={statusFilter}
+                        onValueChange={(value: any) => {
+                          setStatusFilter(value)
+                          setCurrentPage(1)
+                        }}
+                      >
+                        <SelectTrigger className="w-[140px]">
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="deactivated">Deactivated</SelectItem>
+                          <SelectItem value="deleted">Deleted</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   )}
                 </div>
@@ -296,7 +321,7 @@ export default function UsersPage() {
                                       variant="ghost"
                                       size="icon"
                                       className="text-danger"
-                                      onClick={() => handleStatusChange(u._id, "deleted")}
+                                      onClick={() => setUserToDelete(u)}
                                     >
                                       <Trash2 className="w-5 h-5" />
                                     </Button>
@@ -376,6 +401,36 @@ export default function UsersPage() {
         onOpenChange={setCreateUserDialogOpen}
         onSuccess={fetchUsers}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User Account</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the account for{" "}
+              <strong className="text-foreground">
+                {userToDelete && userService.getUserFullName(userToDelete)}
+              </strong>{" "}
+              ({userToDelete?.email})?
+              <br />
+              <br />
+              This action will mark the account as deleted. The user will not be able to log in anymore.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setUserToDelete(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-danger hover:bg-danger/90 text-white"
+            >
+              Delete Account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
