@@ -21,13 +21,40 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
+// File filter for quiz submissions - only allow images (screenshots)
+const quizSubmissionFileFilter = (req, file, cb) => {
+  // Allowed file types (only images for quiz submissions)
+  const allowedMimes = [
+    'image/jpeg',
+    'image/jpg',
+    'image/png',
+    'image/gif',
+    'image/webp'
+  ];
+
+  if (allowedMimes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only image files (JPEG, PNG, GIF, WEBP) are allowed for quiz submissions.'), false);
+  }
+};
+
 // Configure multer to use memory storage (for GridFS)
 const storage = multer.memoryStorage();
 
-// Configure multer
+// Configure multer for general uploads (assignments, quiz documents)
 const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  }
+});
+
+// Configure multer for quiz submissions (images only)
+const quizSubmissionUpload = multer({
+  storage: storage,
+  fileFilter: quizSubmissionFileFilter,
   limits: {
     fileSize: 10 * 1024 * 1024 // 10MB limit
   }
@@ -123,6 +150,7 @@ const deleteFileFromGridFS = async (fileId) => {
 
 module.exports = {
   upload,
+  quizSubmissionUpload,
   uploadToGridFS,
   getFileFromGridFS,
   deleteFileFromGridFS
