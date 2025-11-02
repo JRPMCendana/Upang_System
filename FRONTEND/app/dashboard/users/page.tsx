@@ -37,7 +37,8 @@ export default function UsersPage() {
   const [roleFilter, setRoleFilter] = useState<"all" | "student" | "teacher">("all") // Default to students for teachers
   const [statusFilter, setStatusFilter] = useState<"active" | "deactivated" | "deleted" | "all">("active")
   const [users, setUsers] = useState<User[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
+  const [initialLoading, setInitialLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
@@ -98,6 +99,7 @@ export default function UsersPage() {
       console.error("Error fetching users:", error)
     } finally {
       setLoading(false)
+      setInitialLoading(false)
     }
   }
 
@@ -160,7 +162,7 @@ export default function UsersPage() {
     />
   )
 
-  if (authLoading || loading) {
+  if (authLoading || initialLoading) {
     return (
       <div className="flex h-screen bg-bg-secondary">
         <Sidebar />
@@ -262,7 +264,12 @@ export default function UsersPage() {
             </Card>
 
             {/* Users list */}
-            <Card className="overflow-hidden">
+            <Card className="overflow-hidden relative">
+              {loading && (
+                <div className="absolute inset-0 bg-bg-primary/50 backdrop-blur-sm z-10 flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              )}
               {filteredUsers.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-text-secondary">
                   <UsersIcon className="w-12 h-12 mb-4 opacity-50" />
