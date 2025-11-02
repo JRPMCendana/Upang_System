@@ -3,42 +3,39 @@ const mongoose = require('mongoose');
 const userSchema = new mongoose.Schema({
   username: {
     type: String,
-    required: [true, 'Username is required'],
+    required: true,
     unique: true,
     trim: true,
-    minlength: [3, 'Username must be at least 3 characters'],
-    maxlength: [50, 'Username cannot exceed 50 characters']
+    minlength: 3,
+    maxlength: 50
   },
   email: {
     type: String,
-    required: [true, 'Email is required'],
+    required: true,
     unique: true,
     trim: true,
     lowercase: true,
-    match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email address']
+    match: /^\S+@\S+\.\S+$/
   },
   password: {
     type: String,
-    required: [true, 'Password is required'],
-    minlength: [6, 'Password must be at least 6 characters']
+    required: true,
+    minlength: 6
   },
   role: {
     type: String,
-    required: [true, 'Role is required'],
-    enum: {
-      values: ['student', 'administrator', 'teacher'],
-      message: 'Role must be one of: student, administrator, teacher'
-    }
+    required: true,
+    enum: ['student', 'administrator', 'teacher']
   },
   firstName: {
     type: String,
     trim: true,
-    maxlength: [50, 'First name cannot exceed 50 characters']
+    maxlength: 50
   },
   lastName: {
     type: String,
     trim: true,
-    maxlength: [50, 'Last name cannot exceed 50 characters']
+    maxlength: 50
   },
   isActive: {
     type: Boolean,
@@ -48,8 +45,6 @@ const userSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Index for faster queries
-// Note: username and email already have indexes via 'unique: true'
 userSchema.index({ role: 1 });
 
 module.exports = mongoose.model('User', userSchema);

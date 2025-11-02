@@ -3,14 +3,6 @@ const router = express.Router();
 const authMiddleware = require('../middleware/auth.middleware');
 const { authorize } = require('../middleware/auth.middleware');
 
-/**
- * Example protected routes demonstrating role-based access control
- * 
- * These are example routes showing how to use authentication and authorization.
- * You can remove or modify these routes as needed for your application.
- */
-
-// Protected route - any authenticated user can access
 router.get('/protected', authMiddleware, (req, res) => {
   res.json({
     message: 'This is a protected route',
@@ -18,7 +10,6 @@ router.get('/protected', authMiddleware, (req, res) => {
   });
 });
 
-// Administrator only route
 router.get('/admin-only', authMiddleware, authorize('administrator'), (req, res) => {
   res.json({
     message: 'This route is only accessible by administrators',
@@ -26,7 +17,6 @@ router.get('/admin-only', authMiddleware, authorize('administrator'), (req, res)
   });
 });
 
-// Teacher only route
 router.get('/teacher-only', authMiddleware, authorize('teacher'), (req, res) => {
   res.json({
     message: 'This route is only accessible by teachers',
@@ -34,7 +24,6 @@ router.get('/teacher-only', authMiddleware, authorize('teacher'), (req, res) => 
   });
 });
 
-// Student only route
 router.get('/student-only', authMiddleware, authorize('student'), (req, res) => {
   res.json({
     message: 'This route is only accessible by students',
@@ -42,7 +31,6 @@ router.get('/student-only', authMiddleware, authorize('student'), (req, res) => 
   });
 });
 
-// Multiple roles allowed (student OR teacher)
 router.get('/student-teacher', authMiddleware, authorize('student', 'teacher'), (req, res) => {
   res.json({
     message: 'This route is accessible by students or teachers',
@@ -50,7 +38,6 @@ router.get('/student-teacher', authMiddleware, authorize('student', 'teacher'), 
   });
 });
 
-// Administrator OR teacher
 router.get('/admin-teacher', authMiddleware, authorize('administrator', 'teacher'), (req, res) => {
   res.json({
     message: 'This route is accessible by administrators or teachers',
