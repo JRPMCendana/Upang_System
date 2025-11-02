@@ -64,14 +64,14 @@ export function ForgotPasswordForm({ onDone }: { onDone?: () => void }) {
 
         {error && (
           <div className="flex gap-2 p-3 bg-danger/10 border border-danger/20 rounded-lg">
-            <AlertCircle className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" />
+            <AlertCircle className="w-5 h-5 text-danger shrink-0 mt-0.5" />
             <p className="text-sm text-danger">{error}</p>
           </div>
         )}
 
         {success && (
           <div className="flex gap-2 p-3 bg-success/10 border border-success/20 rounded-lg">
-            <CheckCircle className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
+            <CheckCircle className="w-5 h-5 text-success shrink-0 mt-0.5" />
             <p className="text-sm text-success">{success}</p>
           </div>
         )}

@@ -1,6 +1,7 @@
 "use client"
 
 import { Bell, Search, LogOut } from "lucide-react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
@@ -26,11 +27,7 @@ export function Header() {
 
   return (
     <header className="flex items-center justify-between px-8 py-4 border-b border-border bg-white">
-      <div className="flex-1 max-w-xs">
-        <div className="relative">
-          <Search className="absolute left-3 top-3 w-5 h-5 text-text-secondary" />
-          <Input placeholder="Search..." className="pl-10 bg-bg-secondary" />
-        </div>
+      <div className="flex items-center gap-4 flex-1 max-w-xl">
       </div>
 
       <div className="flex items-center gap-4">

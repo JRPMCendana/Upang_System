@@ -110,7 +110,7 @@ export function LoginForm() {
 
         {error && (
           <div className="flex gap-2 p-3 bg-danger/10 border border-danger/20 rounded-lg">
-            <AlertCircle className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" />
+            <AlertCircle className="w-5 h-5 text-danger shrink-0 mt-0.5" />
             <p className="text-sm text-danger">{error}</p>
           </div>
         )}
