@@ -367,18 +367,19 @@ class AuthService {
       await user.save();
 
       const updatedUser = await User.findById(userId).select('-password');
+      const userObj = updatedUser.toObject();
 
       return {
-        id: updatedUser._id,
-        username: updatedUser.username,
-        email: updatedUser.email,
-        role: updatedUser.role,
-        firstName: updatedUser.firstName,
-        lastName: updatedUser.lastName,
-        isActive: updatedUser.isActive,
-        status: updatedUser.status,
-        createdAt: updatedUser.createdAt,
-        updatedAt: updatedUser.updatedAt
+        id: userObj._id,
+        username: userObj.username,
+        email: userObj.email,
+        role: userObj.role,
+        firstName: userObj.firstName,
+        lastName: userObj.lastName,
+        isActive: userObj.isActive,
+        status: userObj.status,
+        createdAt: userObj.createdAt,
+        updatedAt: userObj.updatedAt
       };
     } catch (error) {
       if (error.status) {
@@ -441,6 +442,7 @@ class AuthService {
       const [users, total] = await Promise.all([
         User.find(filter)
           .select('-password')
+          .populate('assignedTeacher', '-password')
           .sort({ createdAt: -1 })
           .skip(skip)
           .limit(limitNum),
@@ -475,7 +477,9 @@ class AuthService {
 
   static async getUserById(userId) {
     try {
-      const user = await User.findById(userId).select('-password');
+      const user = await User.findById(userId)
+        .select('-password')
+        .populate('assignedTeacher', '-password');
       
       if (!user) {
         throw {
