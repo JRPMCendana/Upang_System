@@ -208,6 +208,16 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Smooth transitions for all interactive elements */
+  button, a, input, textarea, select, [role="button"] {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  /* Smooth page transitions */
+  main {
+    animation: fadeInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
 }
 
 /* Custom utility classes for UPangLearn design system */
@@ -264,5 +274,37 @@
   .diagonal-right {
     /* Slanted right edge: adjust 80px to control slope */
     clip-path: polygon(0 0, 100% 0, calc(100% - 80px) 100%, 0 100%);
+  }
+}
+
+/* Skeleton shimmer animation */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Fade in and slide up animation for page transitions */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Staggered fade in for cards and list items */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
