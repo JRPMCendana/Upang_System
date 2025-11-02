@@ -21,23 +21,6 @@ export default function LoginPage() {
           <div>
             <h2 className="text-4xl font-bold mb-4">Welcome back!</h2>
             <p className="text-green-100 mb-6">View your courses, submit work, take quizzes, and track your progress easily.</p>
-            <div className="bg-white/10 rounded-lg p-4 space-y-3">
-              <p className="text-sm font-semibold text-green-100">Test Credentials:</p>
-              <div className="text-xs text-green-100">
-                <p>
-                  <strong>Student:</strong> student@test.com
-                </p>
-                <p>
-                  <strong>Teacher:</strong> teacher@test.com
-                </p>
-                <p>
-                  <strong>Admin:</strong> admin@test.com
-                </p>
-                <p className="mt-2">
-                  <strong>Password:</strong> password123
-                </p>
-              </div>
-            </div>
           </div>
           <p className="text-green-100/60">UPangLearn © 2025</p>
         </div>

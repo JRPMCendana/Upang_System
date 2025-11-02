@@ -5,7 +5,6 @@ import { apiClient } from "./api-client"
 export interface LoginCredentials {
   email: string
   password: string
-  role: "student" | "teacher" | "admin"
 }
 
 export interface RegisterCredentials {
@@ -19,29 +18,58 @@ export interface AuthResponse {
   token: string
   user: {
     id: string
-    name: string
+    name?: string
+    username?: string
+    firstName?: string
+    lastName?: string
     email: string
     role: string
+    isActive?: boolean
   }
 }
 
 class AuthService {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const response = await apiClient.request<AuthResponse>("/auth/login", {
+    // Backend returns { success, message, data: { token, role } } in this codebase
+    // and /auth/me returns { success, data: user }
+    const raw = await apiClient.request<any>("/auth/login", {
       method: "POST",
       body: credentials,
     })
-    apiClient.setToken(response.token)
-    return response
+
+    const wrapped = raw && raw.data && raw.data.token
+    const token: string | undefined = wrapped ? raw.data.token : raw.token
+    let user = wrapped ? raw.data.user : raw.user
+
+    if (!token) {
+      throw new Error("Invalid auth response from server: missing token")
+    }
+
+    // If the login response doesn't include the user object, fetch it via /auth/me
+    apiClient.setToken(token)
+    if (!user) {
+      const me = await apiClient.request<any>("/auth/me", { method: "GET" })
+      user = me?.data || me?.user || null
+    }
+
+    if (!user) {
+      throw new Error("Invalid auth response from server: missing user")
+    }
+
+    return { token, user }
   }
 
   async register(credentials: RegisterCredentials): Promise<AuthResponse> {
-    const response = await apiClient.request<AuthResponse>("/auth/register", {
+    const raw = await apiClient.request<any>("/auth/register", {
       method: "POST",
       body: credentials,
     })
-    apiClient.setToken(response.token)
-    return response
+    const wrapped = raw && raw.data && raw.data.token
+    const token: string = wrapped ? raw.data.token : raw.token
+    const user = wrapped ? raw.data.user : raw.user
+    if (!token || !user) throw new Error("Invalid auth response from server")
+    apiClient.setToken(token)
+    return { token, user }
   }
 
   async logout(): Promise<void> {

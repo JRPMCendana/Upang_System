@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { createContext, useContext, useState, useEffect } from "react"
+import { authService } from "@/services/auth-service"
 
 export type UserRole = "student" | "teacher" | "admin"
 
@@ -18,21 +19,25 @@ interface AuthContextType {
   user: User | null
   isLoading: boolean
   isAuthenticated: boolean
-  login: (email: string, password: string, role: UserRole) => Promise<void>
+  login: (identifier: string, password: string) => Promise<User>
   logout: () => void
   error: string | null
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-// Generate display names based on role
-const getDisplayName = (email: string, role: UserRole) => {
-  const roleNames: Record<UserRole, string> = {
-    student: "Student User",
-    teacher: "Teacher User",
-    admin: "Admin User",
+// Normalize backend user payload into our User shape
+const mapBackendUser = (u: any): User => {
+  const role = u.role === "administrator" ? ("admin" as UserRole) : (u.role as UserRole)
+  const name = u.firstName || u.lastName ? `${u.firstName || ""} ${u.lastName || ""}`.trim() : u.name || u.username || u.email
+  return {
+    id: u.id || u._id || `user_${Date.now()}`,
+    email: u.email,
+    name,
+    role: role,
+    enrolledCourses: [],
+    createdAt: new Date().toISOString(),
   }
-  return roleNames[role]
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -53,26 +58,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false)
   }, [])
 
-  const login = async (email: string, password: string, role: UserRole) => {
+  const login = async (identifier: string, password: string): Promise<User> => {
     setIsLoading(true)
     setError(null)
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500))
-
-      const userData: User = {
-        id: `user_${Date.now()}`,
-        email,
-        name: getDisplayName(email, role),
-        role,
-        enrolledCourses: [],
-        createdAt: new Date().toISOString(),
-      }
-
-      setUser(userData)
-      localStorage.setItem("upanglearn_user", JSON.stringify(userData))
-    } catch (err) {
-      setError("Login failed. Please try again.")
+      const resp = await authService.login({ email: identifier, password })
+      const normalized = mapBackendUser(resp.user)
+      setUser(normalized)
+      localStorage.setItem("upanglearn_user", JSON.stringify(normalized))
+      return normalized
+    } catch (err: any) {
+      setError("Login failed. Please check your credentials.")
       throw err
     } finally {
       setIsLoading(false)
