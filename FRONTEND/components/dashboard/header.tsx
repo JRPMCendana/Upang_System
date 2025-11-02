@@ -18,6 +18,7 @@ import {
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
+import { getUserInitials } from "@/utils/user.utils"
 
 export function Header() {
   const { user, logout } = useAuth()
@@ -27,14 +28,6 @@ export function Header() {
   const handleLogout = () => {
     logout()
     router.push("/login")
-  }
-
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
   }
 
   return (
@@ -49,7 +42,7 @@ export function Header() {
         <div className="flex items-center gap-3">
           <Avatar className="cursor-pointer">
             <AvatarImage src="/placeholder-user.jpg" />
-            <AvatarFallback>{getInitials(user?.name || "User")}</AvatarFallback>
+            <AvatarFallback>{user?.name ? user.name.substring(0, 2).toUpperCase() : "U"}</AvatarFallback>
           </Avatar>
           <div className="hidden sm:block">
             <p className="text-sm font-medium">{user?.name}</p>

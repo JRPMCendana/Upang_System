@@ -10,6 +10,7 @@ import { FileText, Search, Plus, Calendar, AlertCircle, CheckCircle, Clock, More
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+import { getStatusColor } from "@/utils/ui.utils"
 
 export default function AssignmentsPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
@@ -89,19 +90,6 @@ export default function AssignmentsPage() {
       description: "Implement state management with Context API",
     },
   ]
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return { bg: "bg-warning/10", text: "text-warning", label: "Pending" }
-      case "submitted":
-        return { bg: "bg-accent/10", text: "text-accent", label: "Submitted" }
-      case "overdue":
-        return { bg: "bg-danger/10", text: "text-danger", label: "Overdue" }
-      default:
-        return { bg: "bg-bg-tertiary", text: "text-text-secondary", label: "Unknown" }
-    }
-  }
 
   const getStatusIcon = (status: string) => {
     switch (status) {

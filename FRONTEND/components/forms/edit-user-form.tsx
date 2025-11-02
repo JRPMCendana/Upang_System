@@ -23,6 +23,12 @@ import { Loader2, UserCog, Eye, EyeOff } from "lucide-react"
 import type { User } from "@/types/user.types"
 import { useUsers } from "@/hooks/use-users"
 import { getUserFullName } from "@/utils/user.utils"
+import { 
+  validateEmail, 
+  validatePassword, 
+  validateMinLength, 
+  validateMaxLength 
+} from "@/utils/validation.utils"
 
 interface EditUserFormProps {
   open: boolean
@@ -75,38 +81,48 @@ export function EditUserForm({ open, onOpenChange, onSuccess, user }: EditUserFo
     setLoadingTeachers(false)
   }
 
-  useEffect(() => {
-    if (fetchedTeachers.length > 0 && user?.role === "student") {
-      setTeachers(fetchedTeachers)
-    }
-  }, [fetchedTeachers, user])
-
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
 
-    if (formData.email.trim() && !/^\S+@\S+\.\S+$/.test(formData.email)) {
+    // Email validation (optional field)
+    if (formData.email.trim() && !validateEmail(formData.email)) {
       newErrors.email = "Invalid email format"
     }
 
+    // Username validation (optional field)
     if (formData.username.trim()) {
-      if (formData.username.trim().length < 3) {
-        newErrors.username = "Username must be at least 3 characters"
-      } else if (formData.username.trim().length > 50) {
-        newErrors.username = "Username cannot exceed 50 characters"
+      const minLengthError = validateMinLength(formData.username, 3, "Username")
+      if (minLengthError) {
+        newErrors.username = minLengthError
+      } else {
+        const maxLengthError = validateMaxLength(formData.username, 50, "Username")
+        if (maxLengthError) {
+          newErrors.username = maxLengthError
+        }
       }
     }
 
+    // Password validation (optional field)
     if (formData.password.trim()) {
-      if (formData.password.trim().length < 6) {
+      const passwordValidation = validatePassword(formData.password)
+      if (!passwordValidation.valid && formData.password.trim().length < 6) {
         newErrors.password = "Password must be at least 6 characters"
       }
     }
-    if (formData.firstName && formData.firstName.length > 50) {
-      newErrors.firstName = "First name cannot exceed 50 characters"
+
+    // Optional fields validation
+    if (formData.firstName) {
+      const firstNameError = validateMaxLength(formData.firstName, 50, "First name")
+      if (firstNameError) {
+        newErrors.firstName = firstNameError
+      }
     }
 
-    if (formData.lastName && formData.lastName.length > 50) {
-      newErrors.lastName = "Last name cannot exceed 50 characters"
+    if (formData.lastName) {
+      const lastNameError = validateMaxLength(formData.lastName, 50, "Last name")
+      if (lastNameError) {
+        newErrors.lastName = lastNameError
+      }
     }
 
     setErrors(newErrors)

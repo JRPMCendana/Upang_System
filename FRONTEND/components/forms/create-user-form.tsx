@@ -21,6 +21,13 @@ import {
 } from "@/components/ui/select"
 import { Loader2, UserPlus, Eye, EyeOff } from "lucide-react"
 import { useUsers } from "@/hooks/use-users"
+import { 
+  validateEmail, 
+  validatePassword, 
+  validateRequired, 
+  validateMinLength, 
+  validateMaxLength 
+} from "@/utils/validation.utils"
 
 interface CreateUserFormProps {
   open: boolean
@@ -45,38 +52,59 @@ export function CreateUserForm({ open, onOpenChange, onSuccess }: CreateUserForm
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
 
-    // Required fields validation
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required"
-    } else if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
+    // Email validation
+    const emailError = validateRequired(formData.email, "Email")
+    if (emailError) {
+      newErrors.email = emailError
+    } else if (!validateEmail(formData.email)) {
       newErrors.email = "Invalid email format"
     }
 
-    if (!formData.username.trim()) {
-      newErrors.username = "Username is required"
-    } else if (formData.username.trim().length < 3) {
-      newErrors.username = "Username must be at least 3 characters"
-    } else if (formData.username.trim().length > 50) {
-      newErrors.username = "Username cannot exceed 50 characters"
+    // Username validation
+    const usernameError = validateRequired(formData.username, "Username")
+    if (usernameError) {
+      newErrors.username = usernameError
+    } else {
+      const minLengthError = validateMinLength(formData.username, 3, "Username")
+      if (minLengthError) {
+        newErrors.username = minLengthError
+      } else {
+        const maxLengthError = validateMaxLength(formData.username, 50, "Username")
+        if (maxLengthError) {
+          newErrors.username = maxLengthError
+        }
+      }
     }
 
-    if (!formData.password.trim()) {
-      newErrors.password = "Password is required"
-    } else if (formData.password.trim().length < 6) {
-      newErrors.password = "Password must be at least 6 characters"
+    // Password validation
+    const passwordError = validateRequired(formData.password, "Password")
+    if (passwordError) {
+      newErrors.password = passwordError
+    } else {
+      const passwordValidation = validatePassword(formData.password)
+      if (!passwordValidation.valid) {
+        newErrors.password = passwordValidation.errors[0]
+      }
     }
 
+    // Role validation
     if (!formData.role) {
       newErrors.role = "Role is required"
     }
 
     // Optional fields validation
-    if (formData.firstName && formData.firstName.length > 50) {
-      newErrors.firstName = "First name cannot exceed 50 characters"
+    if (formData.firstName) {
+      const firstNameError = validateMaxLength(formData.firstName, 50, "First name")
+      if (firstNameError) {
+        newErrors.firstName = firstNameError
+      }
     }
 
-    if (formData.lastName && formData.lastName.length > 50) {
-      newErrors.lastName = "Last name cannot exceed 50 characters"
+    if (formData.lastName) {
+      const lastNameError = validateMaxLength(formData.lastName, 50, "Last name")
+      if (lastNameError) {
+        newErrors.lastName = lastNameError
+      }
     }
 
     setErrors(newErrors)

@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { User } from "@/services/user-service"
 import { Mail, User as UserIcon, Calendar, Shield, GraduationCap } from "lucide-react"
+import { formatDate } from "@/utils/date.utils"
+import { getStatusColor } from "@/utils/ui.utils"
 
 interface StudentDetailDialogProps {
   student: User | null
@@ -14,27 +16,6 @@ interface StudentDetailDialogProps {
 
 export function StudentDetailDialog({ student, open, onOpenChange }: StudentDetailDialogProps) {
   if (!student) return null
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    })
-  }
-
-  const statusColor = (status: string) => {
-    switch (status) {
-      case "active":
-        return "bg-success/10 text-success border-success/20"
-      case "deactivated":
-        return "bg-warning/10 text-warning border-warning/20"
-      case "deleted":
-        return "bg-danger/10 text-danger border-danger/20"
-      default:
-        return "bg-bg-tertiary text-text-secondary"
-    }
-  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -58,8 +39,8 @@ export function StudentDetailDialog({ student, open, onOpenChange }: StudentDeta
                 </h3>
                 <p className="text-text-secondary">@{student.username}</p>
               </div>
-              <Badge className={statusColor(student.status)}>
-                {student.status.charAt(0).toUpperCase() + student.status.slice(1)}
+              <Badge className={`${getStatusColor(student.status).bg} ${getStatusColor(student.status).text}`}>
+                {getStatusColor(student.status).label}
               </Badge>
             </div>
           </Card>

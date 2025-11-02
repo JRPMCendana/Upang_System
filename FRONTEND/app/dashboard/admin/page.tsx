@@ -12,6 +12,7 @@ import { useEffect } from "react"
 import { DashboardSkeleton } from "@/components/skeletons"
 import { getUserFullName } from "@/utils/user.utils"
 import { useAdminStats } from "@/hooks/use-admin-stats"
+import { formatRelativeTime } from "@/utils/date.utils"
 
 export default function AdminDashboard() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
@@ -41,7 +42,6 @@ export default function AdminDashboard() {
       refreshAll()
     }
   }, [isAuthenticated, user, refreshAll])
-
   const getRoleBadge = (role: string) => {
     switch (role) {
       case "student":
@@ -53,19 +53,6 @@ export default function AdminDashboard() {
       default:
         return <Badge className="text-xs">Unknown</Badge>
     }
-  }
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffTime = Math.abs(now.getTime() - date.getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    
-    if (diffDays === 0) return "Today"
-    if (diffDays === 1) return "Yesterday"
-    if (diffDays < 7) return `${diffDays} days ago`
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`
-    return `${Math.floor(diffDays / 30)} months ago`
   }
 
   // Show loading state while checking auth or fetching data
@@ -189,7 +176,7 @@ export default function AdminDashboard() {
                             @{u.username} • {u.email}
                           </p>
                           <p className="text-xs text-text-tertiary mt-0.5">
-                            Joined {formatDate(u.createdAt)}
+                            Joined {formatRelativeTime(u.createdAt)}
                           </p>
                         </div>
                       </div>

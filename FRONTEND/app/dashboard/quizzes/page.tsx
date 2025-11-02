@@ -10,6 +10,7 @@ import { ClipboardList, Search, Plus, Clock, MoreVertical } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+import { getStatusColor } from "@/utils/ui.utils"
 
 export default function QuizzesPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
@@ -90,19 +91,6 @@ export default function QuizzesPage() {
       type: "auto-graded",
     },
   ]
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "active":
-        return { bg: "bg-accent/10", text: "text-accent", label: "Active" }
-      case "closed":
-        return { bg: "bg-danger/10", text: "text-danger", label: "Closed" }
-      case "draft":
-        return { bg: "bg-warning/10", text: "text-warning", label: "Draft" }
-      default:
-        return { bg: "bg-bg-tertiary", text: "text-text-secondary", label: "Unknown" }
-    }
-  }
 
   const filteredQuizzes = mockQuizzes.filter(
     (quiz) =>
