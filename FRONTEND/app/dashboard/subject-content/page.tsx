@@ -67,8 +67,8 @@ export default function SubjectContentPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold mb-2">Subject Content</h1>
-                <p className="text-text-secondary">Monitor course files uploaded by teachers</p>
+                <h1 className="text-3xl font-bold mb-2">Subject Lessons</h1>
+                <p className="text-text-secondary">Monitor lesson files uploaded by teachers</p>
               </div>
             </div>
 
@@ -77,7 +77,7 @@ export default function SubjectContentPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-3 w-5 h-5 text-text-secondary" />
                 <Input
-                  placeholder="Search by course, file name, or teacher..."
+                  placeholder="Search by lessons, file name, or teacher..."
                   className="pl-10"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -91,7 +91,7 @@ export default function SubjectContentPage() {
                 <table className="w-full text-sm">
                   <thead className="bg-bg-tertiary text-text-secondary">
                     <tr>
-                      <th className="text-left px-6 py-3 font-medium">Course</th>
+                      <th className="text-left px-6 py-3 font-medium">Lessons</th>
                       <th className="text-left px-6 py-3 font-medium">File</th>
                       <th className="text-left px-6 py-3 font-medium">Type</th>
                       <th className="text-left px-6 py-3 font-medium">Size</th>

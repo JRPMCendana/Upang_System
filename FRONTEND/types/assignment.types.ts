@@ -10,13 +10,29 @@ export interface Assignment {
   instructions?: string
   dueDate: string
   totalPoints?: number
-  status: "pending" | "submitted" | "graded" | "overdue"
+  status: "pending" | "submitted" | "graded" | "late" // Updated to match backend
   attachments?: string[]
   submissionType: "file" | "text" | "link"
   allowLateSubmission?: boolean
   createdBy: string
   createdAt: string
   updatedAt: string
+  submission?: {
+    _id: string
+    isSubmitted: boolean
+    submittedAt?: string
+    grade?: number | null
+    feedback?: string | null
+    gradedAt?: string | null
+    submittedDocument?: string
+    submittedDocumentName?: string
+  } | null
+  submissionStats?: {
+    total: number
+    submitted: number
+    graded: number
+    pending: number
+  }
 }
 
 export interface AssignmentCourse {
@@ -66,7 +82,7 @@ export interface UpdateAssignmentData {
   instructions?: string
   dueDate?: string
   totalPoints?: number
-  status?: "pending" | "submitted" | "graded" | "overdue"
+  status?: "pending" | "submitted" | "graded" | "late" // Updated to match backend
   allowLateSubmission?: boolean
 }
 

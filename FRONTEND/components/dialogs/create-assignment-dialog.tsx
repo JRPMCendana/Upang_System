@@ -1,0 +1,324 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Upload, X, FileText, Loader2 } from "lucide-react"
+import type { CreateAssignmentData } from "@/types/assignment.types"
+import { userService } from "@/services/user-service"
+import type { User } from "@/types/user.types"
+
+interface CreateAssignmentDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSubmit: (data: CreateAssignmentData & { studentIds: string[] }, file?: File) => Promise<void>
+  loading?: boolean
+}
+
+export function CreateAssignmentDialog({ open, onOpenChange, onSubmit, loading }: CreateAssignmentDialogProps) {
+  const [formData, setFormData] = useState<CreateAssignmentData & { studentIds: string[] }>({
+    courseId: "",
+    title: "",
+    description: "",
+    instructions: "",
+    dueDate: "",
+    totalPoints: 100,
+    submissionType: "file",
+    allowLateSubmission: false,
+    studentIds: [],
+  })
+  const [file, setFile] = useState<File | null>(null)
+  const [students, setStudents] = useState<User[]>([])
+  const [loadingStudents, setLoadingStudents] = useState(false)
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([])
+
+  // Fetch students when dialog opens and reset state when it closes
+  useEffect(() => {
+    if (!open) {
+      // Reset state when dialog closes
+      setStudents([])
+      setSelectedStudentIds([])
+      return
+    }
+
+    const fetchStudents = async () => {
+      setLoadingStudents(true)
+      try {
+        const response = await userService.getAssignedStudents(1, 100)
+        setStudents(response.data)
+      } catch (error) {
+        console.error("Error fetching students:", error)
+      } finally {
+        setLoadingStudents(false)
+      }
+    }
+
+    fetchStudents()
+  }, [open])
+
+  const toggleStudent = (studentId: string) => {
+    setSelectedStudentIds(prev => 
+      prev.includes(studentId) 
+        ? prev.filter(id => id !== studentId)
+        : [...prev, studentId]
+    )
+  }
+
+  const toggleAllStudents = () => {
+    if (selectedStudentIds.length === students.length) {
+      setSelectedStudentIds([])
+    } else {
+      setSelectedStudentIds(students.map(s => s._id))
+    }
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0])
+    }
+  }
+
+  const handleRemoveFile = () => {
+    setFile(null)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    // Add selected student IDs to form data
+    const dataWithStudents = {
+      ...formData,
+      studentIds: selectedStudentIds,
+    }
+    
+    await onSubmit(dataWithStudents, file || undefined)
+    
+    // Reset form
+    setFormData({
+      courseId: "",
+      title: "",
+      description: "",
+      instructions: "",
+      dueDate: "",
+      totalPoints: 100,
+      submissionType: "file",
+      allowLateSubmission: false,
+      studentIds: [],
+    })
+    setFile(null)
+    setSelectedStudentIds([])
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Create New Assignment</DialogTitle>
+          <p className="text-sm text-text-secondary">Fill in the details to create a new assignment for your students</p>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Title */}
+          <div className="space-y-2">
+            <Label htmlFor="title">Assignment Title *</Label>
+            <Input
+              id="title"
+              placeholder="e.g., React Hooks Implementation"
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              required
+            />
+          </div>
+
+          {/* Description */}
+          <div className="space-y-2">
+            <Label htmlFor="description">Description *</Label>
+            <Textarea
+              id="description"
+              placeholder="Brief description of the assignment..."
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              rows={3}
+              required
+            />
+          </div>
+
+          {/* Instructions */}
+          <div className="space-y-2">
+            <Label htmlFor="instructions">Detailed Instructions</Label>
+            <Textarea
+              id="instructions"
+              placeholder="Provide detailed instructions for students..."
+              value={formData.instructions}
+              onChange={(e) => setFormData({ ...formData, instructions: e.target.value })}
+              rows={4}
+            />
+          </div>
+
+          {/* Due Date and Points */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="dueDate">Due Date *</Label>
+              <Input
+                id="dueDate"
+                type="datetime-local"
+                value={formData.dueDate}
+                onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="totalPoints">Total Points</Label>
+              <Input
+                id="totalPoints"
+                type="number"
+                min="0"
+                value={formData.totalPoints}
+                onChange={(e) => setFormData({ ...formData, totalPoints: parseInt(e.target.value) || 0 })}
+              />
+            </div>
+          </div>
+
+          {/* Submission Type */}
+          <div className="space-y-2">
+            <Label htmlFor="submissionType">Submission Type</Label>
+            <Select
+              value={formData.submissionType}
+              onValueChange={(value: "file" | "text" | "link") => setFormData({ ...formData, submissionType: value })}
+            >
+              <SelectTrigger id="submissionType">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="file">File Upload</SelectItem>
+                <SelectItem value="text">Text Submission</SelectItem>
+                <SelectItem value="link">Link Submission</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Allow Late Submission */}
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="allowLateSubmission"
+              checked={formData.allowLateSubmission}
+              onCheckedChange={(checked) => setFormData({ ...formData, allowLateSubmission: checked as boolean })}
+            />
+            <Label htmlFor="allowLateSubmission" className="cursor-pointer">
+              Allow late submissions
+            </Label>
+          </div>
+
+          {/* Student Selection */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Assign to Students *</Label>
+              {students.length > 0 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleAllStudents}
+                  className="h-auto py-1 px-2 text-xs"
+                >
+                  {selectedStudentIds.length === students.length ? "Deselect All" : "Select All"}
+                </Button>
+              )}
+            </div>
+            
+            {loadingStudents ? (
+              <div className="border border-border rounded-lg p-4 flex items-center justify-center">
+                <Loader2 className="w-5 h-5 animate-spin text-primary mr-2" />
+                <span className="text-sm text-text-secondary">Loading students...</span>
+              </div>
+            ) : students.length === 0 ? (
+              <div className="border border-border rounded-lg p-4 text-center">
+                <p className="text-sm text-text-secondary">No students available</p>
+                <p className="text-xs text-text-secondary mt-1">Students must be assigned to you first</p>
+              </div>
+            ) : (
+              <div className="border border-border rounded-lg max-h-48 overflow-y-auto">
+                {students.map((student) => (
+                  <label
+                    key={student._id}
+                    htmlFor={`student-${student._id}`}
+                    className="flex items-center space-x-3 p-3 hover:bg-bg-secondary cursor-pointer border-b border-border last:border-b-0"
+                  >
+                    <Checkbox
+                      id={`student-${student._id}`}
+                      checked={selectedStudentIds.includes(student._id)}
+                      onCheckedChange={() => toggleStudent(student._id)}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">
+                        {student.firstName} {student.lastName}
+                      </p>
+                      <p className="text-xs text-text-secondary truncate">{student.email}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
+            
+            {selectedStudentIds.length > 0 && (
+              <p className="text-xs text-text-secondary">
+                {selectedStudentIds.length} student{selectedStudentIds.length !== 1 ? "s" : ""} selected
+              </p>
+            )}
+          </div>
+
+          {/* File Attachment */}
+          <div className="space-y-2">
+            <Label>Attachment (Optional)</Label>
+            {!file ? (
+              <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition cursor-pointer">
+                <input
+                  type="file"
+                  id="file-upload"
+                  className="hidden"
+                  onChange={handleFileChange}
+                  accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.zip"
+                />
+                <label htmlFor="file-upload" className="cursor-pointer">
+                  <Upload className="w-8 h-8 text-text-secondary mx-auto mb-2" />
+                  <p className="text-sm text-text-secondary">Click to upload assignment file</p>
+                  <p className="text-xs text-text-secondary mt-1">PDF, DOC, PPT, TXT, ZIP (Max 10MB)</p>
+                </label>
+              </div>
+            ) : (
+              <div className="border border-border rounded-lg p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <FileText className="w-5 h-5 text-primary" />
+                  <div>
+                    <p className="text-sm font-medium">{file.name}</p>
+                    <p className="text-xs text-text-secondary">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                  </div>
+                </div>
+                <Button type="button" variant="ghost" size="icon" onClick={handleRemoveFile}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={loading || selectedStudentIds.length === 0 || !formData.title || !formData.description || !formData.dueDate}
+            >
+              {loading ? "Creating..." : "Create Assignment"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}

@@ -1,14 +1,15 @@
-import { useState, useCallback } from "react"
-import { assignmentService, type Assignment } from "@/services/assignment-service"
+import { useState, useCallback, useEffect } from "react"
+import { assignmentService, type Assignment, type AssignmentSubmission, type CreateAssignmentData, type GradeAssignmentData } from "@/services/assignment-service"
 import { useToast } from "@/hooks/use-toast"
 
 interface UseAssignmentsOptions {
-  courseId?: string
+  page?: number
+  limit?: number
   autoFetch?: boolean
 }
 
 export function useAssignments(options: UseAssignmentsOptions = {}) {
-  const { courseId, autoFetch = false } = options
+  const { page = 1, limit = 10, autoFetch = false } = options
   const { toast } = useToast()
 
   // State
@@ -16,10 +17,17 @@ export function useAssignments(options: UseAssignmentsOptions = {}) {
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(autoFetch)
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null)
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    limit: 10,
+    totalItems: 0,
+    totalPages: 0,
+  })
 
   // Fetch assignments
-  const fetchAssignments = useCallback(async (filterCourseId?: string) => {
-    const targetCourseId = filterCourseId ?? courseId
+  const fetchAssignments = useCallback(async (currentPage?: number, currentLimit?: number) => {
+    const targetPage = currentPage ?? page
+    const targetLimit = currentLimit ?? limit
 
     if (assignments.length === 0) {
       setInitialLoading(true)
@@ -28,8 +36,11 @@ export function useAssignments(options: UseAssignmentsOptions = {}) {
     }
 
     try {
-      const response = await assignmentService.getAssignments(targetCourseId)
-      setAssignments(response as Assignment[])
+      const response = await assignmentService.getAssignments(targetPage, targetLimit)
+      setAssignments(response.data)
+      if (response.pagination) {
+        setPagination(response.pagination)
+      }
     } catch (error: any) {
       console.error("Error fetching assignments:", error)
       toast({
@@ -41,15 +52,15 @@ export function useAssignments(options: UseAssignmentsOptions = {}) {
       setLoading(false)
       setInitialLoading(false)
     }
-  }, [courseId, assignments.length, toast])
+  }, [page, limit, assignments.length, toast])
 
   // Fetch single assignment
   const fetchAssignmentById = useCallback(async (id: string) => {
     setLoading(true)
     try {
       const response = await assignmentService.getAssignmentById(id)
-      setSelectedAssignment(response as Assignment)
-      return response as Assignment
+      setSelectedAssignment(response.data)
+      return response.data
     } catch (error: any) {
       console.error("Error fetching assignment:", error)
       toast({
@@ -63,15 +74,92 @@ export function useAssignments(options: UseAssignmentsOptions = {}) {
     }
   }, [toast])
 
-  // Submit assignment
+  // Create assignment (teacher only)
+  const createAssignment = useCallback(async (data: CreateAssignmentData & { studentIds: string[] }, file?: File) => {
+    setLoading(true)
+    try {
+      const response = await assignmentService.createAssignment(data, file)
+      
+      toast({
+        title: "Success",
+        description: "Assignment created successfully!",
+      })
+
+      // Refresh assignments
+      await fetchAssignments()
+      return response.data
+    } catch (error: any) {
+      console.error("Error creating assignment:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create assignment",
+        variant: "destructive",
+      })
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }, [toast, fetchAssignments])
+
+  // Update assignment (teacher only)
+  const updateAssignment = useCallback(async (id: string, data: Partial<Assignment>, file?: File) => {
+    setLoading(true)
+    try {
+      const response = await assignmentService.updateAssignment(id, data, file)
+      
+      toast({
+        title: "Success",
+        description: "Assignment updated successfully!",
+      })
+
+      // Refresh assignments
+      await fetchAssignments()
+      return response.data
+    } catch (error: any) {
+      console.error("Error updating assignment:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update assignment",
+        variant: "destructive",
+      })
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }, [toast, fetchAssignments])
+
+  // Delete assignment (teacher only)
+  const deleteAssignment = useCallback(async (id: string) => {
+    setLoading(true)
+    try {
+      await assignmentService.deleteAssignment(id)
+      
+      toast({
+        title: "Success",
+        description: "Assignment deleted successfully!",
+      })
+
+      // Refresh assignments
+      await fetchAssignments()
+      return true
+    } catch (error: any) {
+      console.error("Error deleting assignment:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete assignment",
+        variant: "destructive",
+      })
+      return false
+    } finally {
+      setLoading(false)
+    }
+  }, [toast, fetchAssignments])
+
+  // Submit assignment (student only)
   const submitAssignment = useCallback(async (id: string, file: File) => {
     setLoading(true)
     try {
       const response = await assignmentService.submitAssignment(id, file)
-      
-      if (!response.ok) {
-        throw new Error("Failed to submit assignment")
-      }
 
       toast({
         title: "Success",
@@ -80,7 +168,7 @@ export function useAssignments(options: UseAssignmentsOptions = {}) {
 
       // Refresh assignments
       await fetchAssignments()
-      return true
+      return response.data
     } catch (error: any) {
       console.error("Error submitting assignment:", error)
       toast({
@@ -88,31 +176,31 @@ export function useAssignments(options: UseAssignmentsOptions = {}) {
         description: error.message || "Failed to submit assignment",
         variant: "destructive",
       })
-      return false
+      return null
     } finally {
       setLoading(false)
     }
   }, [toast, fetchAssignments])
 
-  // Grade assignment (teacher only)
-  const gradeAssignment = useCallback(async (id: string, grade: number, feedback: string) => {
+  // Unsubmit assignment (student only)
+  const unsubmitAssignment = useCallback(async (id: string) => {
     setLoading(true)
     try {
-      await assignmentService.gradeAssignment(id, grade, feedback)
+      await assignmentService.unsubmitAssignment(id)
 
       toast({
         title: "Success",
-        description: "Assignment graded successfully!",
+        description: "Assignment unsubmitted successfully!",
       })
 
       // Refresh assignments
       await fetchAssignments()
       return true
     } catch (error: any) {
-      console.error("Error grading assignment:", error)
+      console.error("Error unsubmitting assignment:", error)
       toast({
         title: "Error",
-        description: error.message || "Failed to grade assignment",
+        description: error.message || "Failed to unsubmit assignment",
         variant: "destructive",
       })
       return false
@@ -121,17 +209,155 @@ export function useAssignments(options: UseAssignmentsOptions = {}) {
     }
   }, [toast, fetchAssignments])
 
+  // Replace submission (student only)
+  const replaceSubmission = useCallback(async (id: string, file: File) => {
+    setLoading(true)
+    try {
+      const response = await assignmentService.replaceSubmission(id, file)
+
+      toast({
+        title: "Success",
+        description: "Submission replaced successfully!",
+      })
+
+      // Refresh assignments
+      await fetchAssignments()
+      return response.data
+    } catch (error: any) {
+      console.error("Error replacing submission:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to replace submission",
+        variant: "destructive",
+      })
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }, [toast, fetchAssignments])
+
+  // Get my submission (student only)
+  const getMySubmission = useCallback(async (assignmentId: string) => {
+    setLoading(true)
+    try {
+      const response = await assignmentService.getMySubmission(assignmentId)
+      return response.data
+    } catch (error: any) {
+      console.error("Error fetching submission:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to fetch submission",
+        variant: "destructive",
+      })
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }, [toast])
+
+  // Get submissions by assignment (teacher only)
+  const getSubmissionsByAssignment = useCallback(async (assignmentId: string, currentPage?: number, currentLimit?: number) => {
+    setLoading(true)
+    try {
+      const response = await assignmentService.getSubmissionsByAssignment(
+        assignmentId,
+        currentPage ?? 1,
+        currentLimit ?? 10
+      )
+      return response
+    } catch (error: any) {
+      console.error("Error fetching submissions:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to fetch submissions",
+        variant: "destructive",
+      })
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }, [toast])
+
+  // Grade submission (teacher only)
+  const gradeSubmission = useCallback(async (submissionId: string, gradeData: GradeAssignmentData) => {
+    setLoading(true)
+    try {
+      const response = await assignmentService.gradeSubmission(submissionId, gradeData)
+
+      toast({
+        title: "Success",
+        description: "Submission graded successfully!",
+      })
+
+      return response.data
+    } catch (error: any) {
+      console.error("Error grading submission:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to grade submission",
+        variant: "destructive",
+      })
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }, [toast])
+
+  // Download assignment file
+  const downloadAssignmentFile = useCallback(async (fileId: string, fileName: string) => {
+    try {
+      const blob = await assignmentService.downloadAssignmentFile(fileId)
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = fileName
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error: any) {
+      console.error("Error downloading file:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to download file",
+        variant: "destructive",
+      })
+    }
+  }, [toast])
+
+  // Download submission file
+  const downloadSubmissionFile = useCallback(async (fileId: string, fileName: string) => {
+    try {
+      const blob = await assignmentService.downloadSubmissionFile(fileId)
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = fileName
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error: any) {
+      console.error("Error downloading file:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to download file",
+        variant: "destructive",
+      })
+    }
+  }, [toast])
+
   // Refresh all data
   const refreshAssignments = useCallback(async () => {
     await fetchAssignments()
   }, [fetchAssignments])
 
   // Auto-fetch on mount if enabled
-  useState(() => {
+  useEffect(() => {
     if (autoFetch) {
       fetchAssignments()
     }
-  })
+  }, [autoFetch, fetchAssignments])
 
   return {
     // State
@@ -139,12 +365,22 @@ export function useAssignments(options: UseAssignmentsOptions = {}) {
     loading,
     initialLoading,
     selectedAssignment,
+    pagination,
 
     // Actions
     fetchAssignments,
     fetchAssignmentById,
+    createAssignment,
+    updateAssignment,
+    deleteAssignment,
     submitAssignment,
-    gradeAssignment,
+    unsubmitAssignment,
+    replaceSubmission,
+    getMySubmission,
+    getSubmissionsByAssignment,
+    gradeSubmission,
+    downloadAssignmentFile,
+    downloadSubmissionFile,
     refreshAssignments,
     setSelectedAssignment,
   }
