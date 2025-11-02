@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { userService, type User } from "@/services/user-service"
 import { useToast } from "@/hooks/use-toast"
+import { DashboardSkeleton } from "@/components/skeletons"
 
 export default function AdminDashboard() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
@@ -96,13 +97,16 @@ export default function AdminDashboard() {
     return `${Math.floor(diffDays / 30)} months ago`
   }
 
-  // Show loading state while checking auth
-  if (authLoading) {
+  // Show loading state while checking auth or fetching data
+  if (authLoading || loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-bg-secondary">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-text-secondary">Loading...</p>
+      <div className="flex h-screen bg-bg-secondary">
+        <Sidebar />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Header />
+          <main className="flex-1 overflow-auto p-8">
+            <DashboardSkeleton />
+          </main>
         </div>
       </div>
     )

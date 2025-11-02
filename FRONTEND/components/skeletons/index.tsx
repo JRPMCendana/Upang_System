@@ -1,0 +1,8 @@
+export { DashboardSkeleton } from "./dashboard-skeleton"
+export { CoursesSkeleton } from "./courses-skeleton"
+export { AssignmentsSkeleton } from "./assignments-skeleton"
+export { UsersSkeleton } from "./users-skeleton"
+export { GradesSkeleton } from "./grades-skeleton"
+export { QuizzesSkeleton } from "./quizzes-skeleton"
+export { ReportsSkeleton } from "./reports-skeleton"
+export { SettingsSkeleton } from "./settings-skeleton"

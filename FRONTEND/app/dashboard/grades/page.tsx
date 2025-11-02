@@ -204,19 +204,17 @@ export default function GradesPage() {
                           </td>
                           <td className="py-3 px-4 text-text-secondary">{item.date}</td>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </main>
+          </Card>
         </div>
-      </div>
-    )
-  }
-
-  // Teacher view
+      </main>
+    </div>
+  </div>
+)
+}  // Teacher view
   return (
     <div className="flex h-screen bg-bg-secondary">
       <Sidebar />
@@ -326,12 +324,12 @@ export default function GradesPage() {
                   <Legend />
                   <Bar dataKey="average" fill="#2563eb" name="Average Grade" />
                   <Bar dataKey="passed" fill="#10b981" name="Passed" />
-                </BarChart>
-              </ResponsiveContainer>
-            </Card>
-          </div>
-        </main>
-      </div>
+              </BarChart>
+            </ResponsiveContainer>
+          </Card>
+        </div>
+      </main>
     </div>
-  )
+  </div>
+)
 }

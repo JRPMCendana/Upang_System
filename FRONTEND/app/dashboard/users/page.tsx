@@ -13,6 +13,7 @@ import { useEffect, useState } from "react"
 import { userService, type User } from "@/services/user-service"
 import { useToast } from "@/hooks/use-toast"
 import { CreateUserForm } from "@/components/forms/create-user-form"
+import { UsersSkeleton } from "@/components/skeletons"
 
 export default function UsersPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
@@ -127,12 +128,15 @@ export default function UsersPage() {
     />
   )
 
-  if (authLoading) {
+  if (authLoading || loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-bg-secondary">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-text-secondary">Loading...</p>
+      <div className="flex h-screen bg-bg-secondary">
+        <Sidebar />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Header />
+          <main className="flex-1 overflow-auto p-8">
+            <UsersSkeleton />
+          </main>
         </div>
       </div>
     )
@@ -221,11 +225,7 @@ export default function UsersPage() {
 
             {/* Users list */}
             <Card className="overflow-hidden">
-              {loading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                </div>
-              ) : filteredUsers.length === 0 ? (
+              {filteredUsers.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-text-secondary">
                   <UsersIcon className="w-12 h-12 mb-4 opacity-50" />
                   <p className="text-lg font-medium">No users found</p>
