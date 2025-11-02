@@ -20,8 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Loader2, UserPlus, Eye, EyeOff } from "lucide-react"
-import { userService } from "@/services/user-service"
-import { useToast } from "@/hooks/use-toast"
+import { useUsers } from "@/hooks/use-users"
 
 interface CreateUserFormProps {
   open: boolean
@@ -30,8 +29,7 @@ interface CreateUserFormProps {
 }
 
 export function CreateUserForm({ open, onOpenChange, onSuccess }: CreateUserFormProps) {
-  const { toast } = useToast()
-  const [loading, setLoading] = useState(false)
+  const { createUser, loading: hookLoading } = useUsers()
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
     email: "",
@@ -92,23 +90,16 @@ export function CreateUserForm({ open, onOpenChange, onSuccess }: CreateUserForm
       return
     }
 
-    setLoading(true)
+    const success = await createUser({
+      email: formData.email.trim(),
+      password: formData.password.trim(),
+      username: formData.username.trim(),
+      role: formData.role,
+      firstName: formData.firstName.trim() || undefined,
+      lastName: formData.lastName.trim() || undefined,
+    })
 
-    try {
-      await userService.createUser({
-        email: formData.email.trim(),
-        password: formData.password.trim(),
-        username: formData.username.trim(),
-        role: formData.role,
-        firstName: formData.firstName.trim() || undefined,
-        lastName: formData.lastName.trim() || undefined,
-      })
-
-      toast({
-        title: "Success",
-        description: `${formData.role === "student" ? "Student" : "Teacher"} account created successfully!`,
-      })
-
+    if (success) {
       // Reset form
       setFormData({
         email: "",
@@ -123,15 +114,6 @@ export function CreateUserForm({ open, onOpenChange, onSuccess }: CreateUserForm
       // Close dialog and refresh parent
       onOpenChange(false)
       onSuccess?.()
-    } catch (error: any) {
-      console.error("Error creating user:", error)
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create user. Please try again.",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -192,7 +174,7 @@ export function CreateUserForm({ open, onOpenChange, onSuccess }: CreateUserForm
                   value={formData.email}
                   onChange={(e) => handleChange("email", e.target.value)}
                   className={`h-9 ${errors.email ? "border-danger" : ""}`}
-                  disabled={loading}
+                  disabled={hookLoading}
                 />
                 {errors.email && (
                   <p className="text-xs text-danger">{errors.email}</p>
@@ -213,7 +195,7 @@ export function CreateUserForm({ open, onOpenChange, onSuccess }: CreateUserForm
                   value={formData.username}
                   onChange={(e) => handleChange("username", e.target.value)}
                   className={`h-9 ${errors.username ? "border-danger" : ""}`}
-                  disabled={loading}
+                  disabled={hookLoading}
                 />
                 {errors.username && (
                   <p className="text-xs text-danger">{errors.username}</p>
@@ -232,13 +214,13 @@ export function CreateUserForm({ open, onOpenChange, onSuccess }: CreateUserForm
                     value={formData.password}
                     onChange={(e) => handleChange("password", e.target.value)}
                     className={`h-9 pr-10 ${errors.password ? "border-danger" : ""}`}
-                    disabled={loading}
+                    disabled={hookLoading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary transition-colors"
-                    disabled={loading}
+                    disabled={hookLoading}
                   >
                     {showPassword ? (
                       <EyeOff className="w-4 h-4" />
@@ -264,7 +246,7 @@ export function CreateUserForm({ open, onOpenChange, onSuccess }: CreateUserForm
                   value={formData.firstName}
                   onChange={(e) => handleChange("firstName", e.target.value)}
                   className={`h-9 ${errors.firstName ? "border-danger" : ""}`}
-                  disabled={loading}
+                  disabled={hookLoading}
                 />
                 {errors.firstName && (
                   <p className="text-xs text-danger">{errors.firstName}</p>
@@ -280,7 +262,7 @@ export function CreateUserForm({ open, onOpenChange, onSuccess }: CreateUserForm
                   value={formData.lastName}
                   onChange={(e) => handleChange("lastName", e.target.value)}
                   className={`h-9 ${errors.lastName ? "border-danger" : ""}`}
-                  disabled={loading}
+                  disabled={hookLoading}
                 />
                 {errors.lastName && (
                   <p className="text-xs text-danger">{errors.lastName}</p>
@@ -293,10 +275,10 @@ export function CreateUserForm({ open, onOpenChange, onSuccess }: CreateUserForm
             <Button
               type="submit"
               className="bg-primary hover:bg-primary-dark"
-              disabled={loading}
+              disabled={hookLoading}
               size="sm"
             >
-              {loading ? (
+              {hookLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Creating...

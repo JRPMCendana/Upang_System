@@ -229,26 +229,6 @@ export default function AdminDashboard() {
                 </div>
               </Card>
             </div>
-
-            {/* System Alerts */}
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card className="p-6">
-                <h2 className="text-lg font-semibold mb-4">Course Statistics</h2>
-                <div className="space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i}>
-                      <div className="flex justify-between mb-2">
-                        <span className="text-sm font-medium">Course {i}</span>
-                        <span className="text-sm text-text-secondary">{30 + i * 10} students</span>
-                      </div>
-                      <div className="w-full bg-bg-secondary rounded-full h-2">
-                        <div className="bg-primary h-2 rounded-full" style={{ width: `${60 + i * 10}%` }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            </div>
           </div>
         </main>
       </div>
