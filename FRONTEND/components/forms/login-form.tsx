@@ -51,13 +51,6 @@ export function LoginForm() {
     }
   }
 
-  const fillTestCredentials = (selectedRole: UserRole) => {
-    const testUser = TEST_USERS[selectedRole]
-    setEmail(testUser.email)
-    setPassword(testUser.password)
-    setRole(selectedRole)
-  }
-
   return (
     <>
       {!showForgot && (
@@ -135,22 +128,6 @@ export function LoginForm() {
       ) : (
         <ForgotPasswordForm onDone={() => setShowForgot(false)} />
       )}
-
-      {/* Quick fill buttons for testing */}
-      <div className="mt-6 pt-6 border-t border-border">
-        <p className="text-xs text-text-secondary mb-3 font-semibold">Quick Login for Testing:</p>
-        <div className="grid grid-cols-3 gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={() => fillTestCredentials("student")}>
-            Student
-          </Button>
-          <Button type="button" variant="outline" size="sm" onClick={() => fillTestCredentials("teacher")}>
-            Teacher
-          </Button>
-          <Button type="button" variant="outline" size="sm" onClick={() => fillTestCredentials("admin")}>
-            Admin
-          </Button>
-        </div>
-      </div>
     </>
   )
 }
