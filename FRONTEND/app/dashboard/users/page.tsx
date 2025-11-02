@@ -31,7 +31,7 @@ export default function UsersPage() {
   const { toast } = useToast()
   
   const [searchQuery, setSearchQuery] = useState("")
-  const [roleFilter, setRoleFilter] = useState<"all" | "student" | "teacher">("student") // Default to students for teachers
+  const [roleFilter, setRoleFilter] = useState<"all" | "student" | "teacher">("all") // Default to students for teachers
   const [statusFilter, setStatusFilter] = useState<"active" | "deactivated" | "deleted" | "all">("active")
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)

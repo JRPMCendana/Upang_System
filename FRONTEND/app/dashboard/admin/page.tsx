@@ -41,8 +41,8 @@ export default function AdminDashboard() {
   const fetchRecentUsers = async () => {
     try {
       setLoading(true)
-      // Fetch first 5 users sorted by creation date (most recent)
-      const response = await userService.getUsers(1, 5)
+      // Fetch first 5 active users sorted by creation date (most recent)
+      const response = await userService.getUsers(1, 5, undefined, "active")
       setRecentUsers(response.data)
     } catch (error) {
       console.error("Error fetching recent users:", error)
@@ -58,12 +58,12 @@ export default function AdminDashboard() {
 
   const fetchUserStats = async () => {
     try {
-      // Fetch student count
-      const studentsResponse = await userService.getUsers(1, 1, "student")
+      // Fetch active student count
+      const studentsResponse = await userService.getUsers(1, 1, "student", "active")
       setTotalStudents(studentsResponse.pagination.totalItems)
 
-      // Fetch teacher count
-      const teachersResponse = await userService.getUsers(1, 1, "teacher")
+      // Fetch active teacher count
+      const teachersResponse = await userService.getUsers(1, 1, "teacher", "active")
       setTotalTeachers(teachersResponse.pagination.totalItems)
     } catch (error) {
       console.error("Error fetching user stats:", error)
