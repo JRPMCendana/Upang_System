@@ -15,11 +15,17 @@ class EmailService {
     return nodemailer.createTransport({
       host: config.email.host,
       port: parseInt(config.email.port, 10),
-      secure: config.email.secure,
+      secure: config.email.secure === 'true' || config.email.secure === true,
       auth: {
         user: config.email.auth.user,
         pass: config.email.auth.pass
-      }
+      },
+      tls: {
+        rejectUnauthorized: false
+      },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000
     });
   }
 

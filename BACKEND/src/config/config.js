@@ -10,8 +10,7 @@ module.exports = {
   database: {
     uri: process.env.MONGODB_URI,
     options: {
-      useNewUrlParser: true,
-      useUnifiedTopology: true
+      // Removed deprecated options
     }
   },
   jwt: {

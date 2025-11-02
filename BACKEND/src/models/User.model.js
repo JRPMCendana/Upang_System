@@ -56,10 +56,10 @@ const userSchema = new mongoose.Schema({
   collection: 'users'
 });
 
+// Only create indexes that don't already exist from unique: true
 userSchema.index({ role: 1 });
-userSchema.index({ email: 1 });
-userSchema.index({ username: 1 });
 userSchema.index({ assignedTeacher: 1 });
+// email and username indexes are already created by unique: true
 
 const User = mongoose.model('User', userSchema);
 
