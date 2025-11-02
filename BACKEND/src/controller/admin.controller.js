@@ -88,6 +88,55 @@ class AdminController {
       next(error);
     }
   }
+
+  static async assignTeacher(req, res, next) {
+    try {
+      const { studentId } = req.params;
+      const { teacherId } = req.body;
+
+      if (!studentId || !teacherId) {
+        return res.status(400).json({
+          error: 'Validation Error',
+          message: 'Student ID and Teacher ID are required'
+        });
+      }
+
+      const AssignmentService = require('../services/assignment.service');
+      const result = await AssignmentService.assignTeacher(studentId, teacherId);
+
+      res.status(200).json({
+        success: true,
+        message: 'Teacher assigned successfully',
+        data: result
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async unassignTeacher(req, res, next) {
+    try {
+      const { studentId } = req.params;
+
+      if (!studentId) {
+        return res.status(400).json({
+          error: 'Validation Error',
+          message: 'Student ID is required'
+        });
+      }
+
+      const AssignmentService = require('../services/assignment.service');
+      const result = await AssignmentService.unassignTeacher(studentId);
+
+      res.status(200).json({
+        success: true,
+        message: 'Teacher unassigned successfully',
+        data: result
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = AdminController;

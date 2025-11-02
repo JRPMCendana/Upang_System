@@ -4,11 +4,15 @@ const homeRoutes = require('./home.routes');
 const healthRoutes = require('./health.routes');
 const authRoutes = require('./auth.routes');
 const adminRoutes = require('./admin.routes');
+const teacherRoutes = require('./teacher.routes');
+const studentRoutes = require('./student.routes');
 
 router.use('/', homeRoutes);
 router.use('/api', healthRoutes);
 router.use('/api/auth', authRoutes);
 router.use('/api/admin', adminRoutes);
+router.use('/api/teacher', teacherRoutes);
+router.use('/api/student', studentRoutes);
 
 module.exports = router;
 

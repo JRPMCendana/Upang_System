@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
+  role: {
+    type: String,
+    required: true,
+    enum: ['student', 'administrator', 'teacher']
+  },
   username: {
     type: String,
     required: true,
@@ -22,11 +27,6 @@ const userSchema = new mongoose.Schema({
     required: true,
     minlength: 6
   },
-  role: {
-    type: String,
-    required: true,
-    enum: ['student', 'administrator', 'teacher']
-  },
   firstName: {
     type: String,
     trim: true,
@@ -45,12 +45,23 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['active', 'deactivated', 'deleted'],
     default: 'active'
+  },
+  assignedTeacher: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
   }
 }, {
-  timestamps: true
+  timestamps: true,
+  collection: 'users'
 });
 
 userSchema.index({ role: 1 });
+userSchema.index({ email: 1 });
+userSchema.index({ username: 1 });
+userSchema.index({ assignedTeacher: 1 });
 
-module.exports = mongoose.model('User', userSchema);
+const User = mongoose.model('User', userSchema);
+
+module.exports = User;
 
