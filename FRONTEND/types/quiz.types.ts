@@ -1,128 +1,93 @@
 // Quiz Domain Types
+// Aligned with backend Quiz.model.js schema
 
 export interface Quiz {
   _id: string
-  id: string
-  courseId: string
-  course?: QuizCourse
   title: string
-  description?: string
-  instructions?: string
-  questions: Question[]
-  timeLimit: number // in minutes
-  passingScore: number // percentage
-  totalPoints?: number
-  attempts?: number
-  maxAttempts?: number
-  status: "draft" | "active" | "closed"
-  availableFrom?: string
-  availableUntil?: string
-  shuffleQuestions?: boolean
-  showCorrectAnswers?: boolean
-  createdBy: string
+  description: string
+  assignedBy: {
+    _id: string
+    firstName: string
+    lastName: string
+    email: string
+    username: string
+  }
+  assignedTo: Array<{
+    _id: string
+    firstName: string
+    lastName: string
+    email: string
+    username: string
+  }>
+  document: string | null
+  documentName: string | null
+  documentType: string | null
+  status: "active" | "inactive"
+  createdAt: string
+  updatedAt: string
+  
+  // Aggregated fields from submissions (for student view)
+  submission?: {
+    _id: string
+    isSubmitted: boolean
+    submittedAt?: string
+    grade?: number | null
+    feedback?: string | null
+    gradedAt?: string | null
+    submittedDocument?: string
+    submittedDocumentName?: string
+  } | null
+  
+  // Statistics (for teacher view)
+  submissionStats?: {
+    total: number
+    submitted: number
+    graded: number
+    pending: number
+  }
+}
+
+export interface QuizSubmission {
+  _id: string
+  quiz: string | Quiz
+  student: {
+    _id: string
+    firstName: string
+    lastName: string
+    email: string
+    username: string
+  }
+  submittedDocument: string | null
+  submittedDocumentName: string | null
+  submittedDocumentType: string | null
+  isSubmitted: boolean
+  submittedAt: string | null
+  grade: number | null
+  feedback: string | null
+  gradedAt: string | null
   createdAt: string
   updatedAt: string
 }
 
-export interface QuizCourse {
-  _id: string
-  title: string
-  code?: string
-}
-
-export interface Question {
-  _id?: string
-  id: string
-  text: string
-  type: "multiple-choice" | "true-false" | "short-answer" | "essay"
-  points: number
-  options?: QuestionOption[]
-  correctAnswer?: string | string[]
-  explanation?: string
-  order?: number
-}
-
-export interface QuestionOption {
-  id: string
-  text: string
-  isCorrect?: boolean
-}
-
-export interface QuizAttempt {
-  _id: string
-  quizId: string
-  studentId: string
-  student?: AttemptStudent
-  startedAt: string
-  submittedAt?: string
-  answers: QuizAnswer[]
-  score: number
-  percentage: number
-  passed: boolean
-  timeSpent?: number // in seconds
-  status: "in-progress" | "submitted" | "graded"
-  feedback?: string
-}
-
-export interface AttemptStudent {
-  _id: string
-  username: string
-  email: string
-  firstName?: string
-  lastName?: string
-}
-
-export interface QuizAnswer {
-  questionId: string
-  answer: string | string[]
-  isCorrect?: boolean
-  pointsAwarded?: number
-}
-
 export interface CreateQuizData {
-  courseId: string
   title: string
-  description?: string
-  instructions?: string
-  questions: Omit<Question, "_id">[]
-  timeLimit: number
-  passingScore: number
-  maxAttempts?: number
-  availableFrom?: string
-  availableUntil?: string
-  shuffleQuestions?: boolean
-  showCorrectAnswers?: boolean
+  description: string
+  studentIds: string[]
 }
 
 export interface UpdateQuizData {
   title?: string
   description?: string
-  instructions?: string
-  questions?: Question[]
-  timeLimit?: number
-  passingScore?: number
-  maxAttempts?: number
-  status?: "draft" | "active" | "closed"
-  availableFrom?: string
-  availableUntil?: string
-  shuffleQuestions?: boolean
-  showCorrectAnswers?: boolean
-}
-
-export interface StartQuizData {
-  quizId: string
+  status?: "active" | "inactive"
 }
 
 export interface SubmitQuizData {
-  quizId: string
-  attemptId?: string
-  answers: QuizAnswer[]
+  file: File
 }
 
-export interface QuizFilters {
-  courseId?: string
-  status?: "draft" | "active" | "closed"
-  availableNow?: boolean
+export interface GradeQuizData {
+  grade: number
+  feedback?: string
 }
 
 export interface GetQuizzesResponse {
@@ -134,61 +99,4 @@ export interface GetQuizzesResponse {
     totalItems: number
     totalPages: number
   }
-}
-
-export interface GetQuizResponse {
-  success: boolean
-  data: Quiz
-}
-
-export interface CreateQuizResponse {
-  success: boolean
-  message: string
-  data: Quiz
-}
-
-export interface UpdateQuizResponse {
-  success: boolean
-  message: string
-  data: Quiz
-}
-
-export interface StartQuizResponse {
-  success: boolean
-  message: string
-  data: QuizAttempt
-}
-
-export interface SubmitQuizResponse {
-  success: boolean
-  message: string
-  data: QuizAttempt
-}
-
-export interface GetQuizAttemptsResponse {
-  success: boolean
-  data: QuizAttempt[]
-}
-
-// Quiz statistics
-export interface QuizStats {
-  totalQuizzes: number
-  active: number
-  completed: number
-  averageScore?: number
-  highestScore?: number
-  lowestScore?: number
-  totalAttempts?: number
-  passRate?: number
-}
-
-// For student quiz taking
-export interface QuizQuestion extends Omit<Question, 'correctAnswer'> {
-  // Excludes correctAnswer for students
-}
-
-export interface StudentQuiz extends Omit<Quiz, 'questions'> {
-  questions: QuizQuestion[]
-  remainingAttempts?: number
-  bestScore?: number
 }
