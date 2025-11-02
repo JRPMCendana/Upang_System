@@ -10,14 +10,26 @@ import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 
 export default function TeacherDashboard() {
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
+    if (authLoading) return
     if (!isAuthenticated || user?.role !== "teacher") {
       router.push("/login")
     }
-  }, [isAuthenticated, user, router])
+  }, [isAuthenticated, user, router, authLoading])
+
+  if (authLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-bg-secondary">
+        <div className="text-center">
+          <BookOpen className="w-8 h-8 animate-pulse mx-auto mb-4 text-primary" />
+          <p className="text-text-secondary">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!isAuthenticated || user?.role !== "teacher") return null
 

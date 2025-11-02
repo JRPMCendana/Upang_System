@@ -13,7 +13,7 @@ import { userService, type User } from "@/services/user-service"
 import { useToast } from "@/hooks/use-toast"
 
 export default function AdminDashboard() {
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
 
@@ -23,10 +23,13 @@ export default function AdminDashboard() {
   const [totalTeachers, setTotalTeachers] = useState(0)
 
   useEffect(() => {
+    // Wait for auth to finish loading before checking
+    if (authLoading) return
+    
     if (!isAuthenticated || user?.role !== "admin") {
       router.push("/login")
     }
-  }, [isAuthenticated, user, router])
+  }, [isAuthenticated, user, router, authLoading])
 
   useEffect(() => {
     if (isAuthenticated && user?.role === "admin") {
@@ -91,6 +94,18 @@ export default function AdminDashboard() {
     if (diffDays < 7) return `${diffDays} days ago`
     if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`
     return `${Math.floor(diffDays / 30)} months ago`
+  }
+
+  // Show loading state while checking auth
+  if (authLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-bg-secondary">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-text-secondary">Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   if (!isAuthenticated || user?.role !== "admin") return null
@@ -203,13 +218,6 @@ export default function AdminDashboard() {
                           </p>
                         </div>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => router.push("/dashboard/users")}
-                      >
-                        Manage
-                      </Button>
                     </div>
                   ))}
                 </div>

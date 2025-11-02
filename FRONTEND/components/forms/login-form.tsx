@@ -39,18 +39,20 @@ export function LoginForm() {
   return (
     <>
       {!showForgot && (
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6" name="login">
         <div className="space-y-2">
           <Label htmlFor="email">Email address</Label>
           <div className="relative">
             <Mail className="absolute left-3 top-3 w-5 h-5 text-text-secondary" />
             <Input
               id="email"
+              name="email"
               type="email"
               placeholder="you@example.com"
               className="pl-10"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoComplete="username"
               required
             />
           </div>
@@ -62,11 +64,13 @@ export function LoginForm() {
             <Lock className="absolute left-3 top-3 w-5 h-5 text-text-secondary" />
             <Input
               id="password"
+              name="password"
               type="password"
               placeholder="••••••••"
               className="pl-10"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
               required
             />
           </div>

@@ -12,11 +12,13 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
 export default function StudentSubmissionsPage() {
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
 
   useEffect(() => {
+    if (authLoading) return
+    
     if (!isAuthenticated) {
       router.push("/login")
       return
@@ -24,7 +26,18 @@ export default function StudentSubmissionsPage() {
     if (user && user.role !== "admin") {
       router.push(`/dashboard/${user.role}`)
     }
-  }, [isAuthenticated, router, user])
+  }, [isAuthenticated, router, user, authLoading])
+
+  if (authLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-bg-secondary">
+        <div className="text-center">
+          <FileText className="w-8 h-8 animate-pulse mx-auto mb-4 text-primary" />
+          <p className="text-text-secondary">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!isAuthenticated || (user && user.role !== "admin")) return null
 

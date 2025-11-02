@@ -12,9 +12,10 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { userService, type User } from "@/services/user-service"
 import { useToast } from "@/hooks/use-toast"
+import { CreateUserForm } from "@/components/forms/create-user-form"
 
 export default function UsersPage() {
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
   
@@ -27,11 +28,14 @@ export default function UsersPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
   const limit = 10
+  const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false)
 
   const isAdmin = user?.role === "admin"
   const isTeacher = user?.role === "teacher"
 
   useEffect(() => {
+    if (authLoading) return
+    
     if (!isAuthenticated) {
       router.push("/login")
       return
@@ -39,7 +43,7 @@ export default function UsersPage() {
     if (user && user.role !== "admin" && user.role !== "teacher") {
       router.push(`/dashboard/${user.role}`)
     }
-  }, [isAuthenticated, router, user])
+  }, [isAuthenticated, router, user, authLoading])
 
   useEffect(() => {
     if (isAuthenticated && (user?.role === "admin" || user?.role === "teacher")) {
@@ -123,6 +127,17 @@ export default function UsersPage() {
     />
   )
 
+  if (authLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-bg-secondary">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-text-secondary">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex h-screen bg-bg-secondary">
       <Sidebar />
@@ -142,7 +157,10 @@ export default function UsersPage() {
                 </p>
               </div>
               {isAdmin && (
-                <Button className="bg-primary hover:bg-primary-dark gap-2">
+                <Button 
+                  className="bg-primary hover:bg-primary-dark gap-2"
+                  onClick={() => setCreateUserDialogOpen(true)}
+                >
                   <Plus className="w-5 h-5" /> Add User
                 </Button>
               )}
@@ -351,6 +369,13 @@ export default function UsersPage() {
           </div>
         </main>
       </div>
+
+      {/* Create User Dialog */}
+      <CreateUserForm
+        open={createUserDialogOpen}
+        onOpenChange={setCreateUserDialogOpen}
+        onSuccess={fetchUsers}
+      />
     </div>
   )
 }

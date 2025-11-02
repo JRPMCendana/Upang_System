@@ -13,7 +13,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
 export default function SettingsPage() {
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const [orgName, setOrgName] = useState("PHINMA University of Pangasinan")
   const [notifications, setNotifications] = useState(true)
@@ -21,6 +21,8 @@ export default function SettingsPage() {
   const [require2FA, setRequire2FA] = useState(false)
 
   useEffect(() => {
+    if (authLoading) return
+    
     if (!isAuthenticated) {
       router.push("/login")
       return
@@ -28,7 +30,18 @@ export default function SettingsPage() {
     if (user && user.role !== "admin") {
       router.push(`/dashboard/${user.role}`)
     }
-  }, [isAuthenticated, router, user])
+  }, [isAuthenticated, router, user, authLoading])
+
+  if (authLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-bg-secondary">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-text-secondary">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!isAuthenticated || (user && user.role !== "admin")) return null
 
