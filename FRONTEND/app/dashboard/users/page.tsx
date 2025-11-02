@@ -25,6 +25,7 @@ import { userService, type User } from "@/services/user-service"
 import { useToast } from "@/hooks/use-toast"
 import { CreateUserForm } from "@/components/forms/create-user-form"
 import { EditUserForm } from "@/components/forms/edit-user-form"
+import { StudentDetailDialog } from "@/components/dialogs/student-detail-dialog"
 import { UsersSkeleton } from "@/components/skeletons"
 
 export default function UsersPage() {
@@ -44,6 +45,7 @@ export default function UsersPage() {
   const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false)
   const [userToDelete, setUserToDelete] = useState<User | null>(null)
   const [userToEdit, setUserToEdit] = useState<User | null>(null)
+  const [studentToView, setStudentToView] = useState<User | null>(null)
 
   const isAdmin = user?.role === "admin"
   const isTeacher = user?.role === "teacher"
@@ -69,12 +71,21 @@ export default function UsersPage() {
   const fetchUsers = async () => {
     try {
       setLoading(true)
-      const response = await userService.getUsers(
-        currentPage,
-        limit,
-        roleFilter === "all" ? undefined : roleFilter,
-        statusFilter === "all" ? undefined : statusFilter
-      )
+      
+      let response
+      if (isTeacher) {
+        // Teachers only see their assigned students
+        response = await userService.getAssignedStudents(currentPage, limit)
+      } else {
+        // Admins see all users with filters
+        response = await userService.getUsers(
+          currentPage,
+          limit,
+          roleFilter === "all" ? undefined : roleFilter,
+          statusFilter === "all" ? undefined : statusFilter
+        )
+      }
+      
       setUsers(response.data)
       setTotalPages(response.pagination.totalPages)
       setTotalItems(response.pagination.totalItems)
@@ -291,7 +302,12 @@ export default function UsersPage() {
                           <td className="px-6 py-3 text-right">
                             <div className="flex items-center justify-end gap-2">
                               {isTeacher ? (
-                                <Button variant="outline" size="sm" className="gap-1">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="gap-1"
+                                  onClick={() => setStudentToView(u)}
+                                >
                                   View Profile
                                 </Button>
                               ) : (
@@ -415,6 +431,13 @@ export default function UsersPage() {
         onOpenChange={(open) => !open && setUserToEdit(null)}
         onSuccess={fetchUsers}
         user={userToEdit}
+      />
+
+      {/* Student Detail Dialog */}
+      <StudentDetailDialog
+        student={studentToView}
+        open={!!studentToView}
+        onOpenChange={(open) => !open && setStudentToView(null)}
       />
 
       {/* Delete Confirmation Dialog */}

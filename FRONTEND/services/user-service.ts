@@ -131,6 +131,30 @@ class UserService {
   }
 
   /**
+   * Get assigned students for a teacher (Teacher only)
+   */
+  async getAssignedStudents(
+    page: number = 1,
+    limit: number = 10
+  ): Promise<GetUsersResponse> {
+    const params: Record<string, any> = { page, limit }
+
+    return apiClient.request<GetUsersResponse>("/teacher/assigned-students", {
+      method: "GET",
+      params,
+    })
+  }
+
+  /**
+   * Get a specific assigned student by ID (Teacher only)
+   */
+  async getAssignedStudent(studentId: string): Promise<{ success: boolean; data: User }> {
+    return apiClient.request(`/teacher/assigned-students/${studentId}`, {
+      method: "GET",
+    })
+  }
+
+  /**
    * Get user's full name
    */
   getUserFullName(user: User): string {
