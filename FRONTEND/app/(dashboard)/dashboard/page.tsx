@@ -53,15 +53,6 @@ export default function DashboardPage() {
               animate="show"
             >
               <motion.div variants={item}>
-                <Card className="p-6 hover:shadow-lg transition-shadow">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-text-secondary mb-1">Active Courses</p>
-                      <p className="text-2xl font-bold">5</p>
-                    </div>
-                    <BookOpen className="w-10 h-10 text-primary/20" />
-                  </div>
-                </Card>
               </motion.div>
               <motion.div variants={item}>
                 <Card className="p-6 hover:shadow-lg transition-shadow">

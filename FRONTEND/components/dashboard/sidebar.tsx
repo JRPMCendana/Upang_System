@@ -4,7 +4,6 @@ import type React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { BarChart3, FileText, ClipboardList, Users } from "lucide-react"
-import { BookOpen } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/lib/auth-context"
@@ -34,12 +33,6 @@ const navItems: NavItem[] = [
     href: "/dashboard/admin",
     icon: <BarChart3 className="w-5 h-5" />,
     roles: ["admin"],
-  },
-  {
-    label: "Courses",
-    href: "/dashboard/courses",
-    icon: <BookOpen className="w-5 h-5" />,
-    roles: ["student", "teacher"],
   },
   {
     label: "Assignments",

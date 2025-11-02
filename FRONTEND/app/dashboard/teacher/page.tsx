@@ -51,16 +51,7 @@ export default function TeacherDashboard() {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid md:grid-cols-4 gap-6">
-              <Card className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-text-secondary mb-1">Active Courses</p>
-                    <p className="text-2xl font-bold">4</p>
-                  </div>
-                  <BookOpen className="w-10 h-10 text-primary/20" />
-                </div>
-              </Card>
+            <div className="grid md:grid-cols-3 gap-6">
               <Card className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -108,31 +99,6 @@ export default function TeacherDashboard() {
                     </div>
                     <Button variant="outline" size="sm">
                       Grade
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            {/* Courses */}
-            <Card className="p-6">
-              <h2 className="text-lg font-semibold mb-4">Your Courses</h2>
-              <div className="grid md:grid-cols-2 gap-4">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="p-4 border border-border rounded-lg">
-                    <div className="flex items-center justify-between mb-3">
-                      <BookOpen className="w-6 h-6 text-primary" />
-                      <span className="text-sm text-text-secondary">{20 + i * 5} students</span>
-                    </div>
-                    <p className="font-semibold mb-2">
-                      Course {i}:{" "}
-                      {["Introduction to React", "Web Design Basics", "JavaScript Fundamentals", "Advanced CSS"][i - 1]}
-                    </p>
-                    <p className="text-sm text-text-secondary mb-3">
-                      Next class: {["Today", "Tomorrow", "In 2 days", "Next week"][i - 1]}
-                    </p>
-                    <Button variant="outline" size="sm" className="w-full bg-transparent">
-                      View Course
                     </Button>
                   </div>
                 ))}

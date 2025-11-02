@@ -47,16 +47,7 @@ export default function StudentDashboard() {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid md:grid-cols-4 gap-6">
-              <Card className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-text-secondary mb-1">Active Courses</p>
-                    <p className="text-2xl font-bold">5</p>
-                  </div>
-                  <BookOpen className="w-10 h-10 text-primary/20" />
-                </div>
-              </Card>
+            <div className="grid md:grid-cols-3 gap-6">
               <Card className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -104,27 +95,6 @@ export default function StudentDashboard() {
                     <span className="px-3 py-1 bg-warning/10 text-warning rounded-full text-sm font-medium">
                       Due Soon
                     </span>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            {/* Completed Courses */}
-            <Card className="p-6">
-              <h2 className="text-lg font-semibold mb-4">Recent Courses</h2>
-              <div className="grid md:grid-cols-3 gap-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="p-4 border border-border rounded-lg">
-                    <div className="flex items-center justify-between mb-3">
-                      <BookOpen className="w-6 h-6 text-primary" />
-                      <span className="text-sm text-text-secondary">{60 + i * 10}% Complete</span>
-                    </div>
-                    <p className="font-semibold mb-2">
-                      Course {i}: {["Introduction to React", "Web Design Basics", "JavaScript Fundamentals"][i - 1]}
-                    </p>
-                    <div className="w-full bg-bg-secondary rounded-full h-2">
-                      <div className="bg-primary h-2 rounded-full" style={{ width: `${60 + i * 10}%` }} />
-                    </div>
                   </div>
                 ))}
               </div>

@@ -152,23 +152,6 @@ export default function GradesPage() {
                 </ResponsiveContainer>
               </Card>
 
-              {/* Course Grades */}
-              <Card className="p-6">
-                <h2 className="text-lg font-semibold mb-4">Grades by Course</h2>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={studentGradeData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="course" />
-                    <YAxis domain={[0, 100]} />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="grade" fill="#2563eb" />
-                    <Bar dataKey="assignment" fill="#10b981" />
-                    <Bar dataKey="quiz" fill="#f59e0b" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Card>
-
               {/* Assignment Grades Table */}
               <Card className="p-6">
                 <h2 className="text-lg font-semibold mb-4">Recent Grades</h2>
@@ -240,7 +223,6 @@ export default function GradesPage() {
               <Card className="p-6">
                 <p className="text-sm text-text-secondary mb-2">Class Average</p>
                 <p className="text-3xl font-bold text-primary">84%</p>
-                <p className="text-xs text-accent mt-2">Across 4 courses</p>
               </Card>
               <Card className="p-6">
                 <p className="text-sm text-text-secondary mb-2">Pass Rate</p>
@@ -285,48 +267,22 @@ export default function GradesPage() {
                   </PieChart>
                 </ResponsiveContainer>
               </Card>
-
-              <Card className="p-6">
-                <h2 className="text-lg font-semibold mb-4">Course Performance</h2>
-                <div className="space-y-4">
-                  {classPerformance.map((course, idx) => (
-                    <div key={idx} className="pb-4 border-b border-border last:border-0">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium">{course.name}</span>
-                        <span className="text-sm text-text-secondary">{course.average}% avg</span>
-                      </div>
-                      <div className="flex gap-1 text-xs text-text-secondary mb-1">
-                        <span>{course.passed} passed</span>
-                        <span>•</span>
-                        <span>{course.failed} failed</span>
-                      </div>
-                      <div className="w-full bg-bg-secondary rounded-full h-2">
-                        <div
-                          className="bg-primary h-2 rounded-full"
-                          style={{ width: `${(course.passed / course.students) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            </div>
-
-            {/* Class Performance Chart */}
+                          {/* Class Performance Chart */}
             <Card className="p-6">
-              <h2 className="text-lg font-semibold mb-4">Class Performance by Course</h2>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={classPerformance}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="average" fill="#2563eb" name="Average Grade" />
-                  <Bar dataKey="passed" fill="#10b981" name="Passed" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Card>
+                <h2 className="text-lg font-semibold mb-4">Class Performance by Course</h2>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={classPerformance}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="average" fill="#2563eb" name="Average Grade" />
+                    <Bar dataKey="passed" fill="#10b981" name="Passed" />
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
+            </div>
         </div>
       </main>
     </div>
