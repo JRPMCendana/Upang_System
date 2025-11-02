@@ -11,6 +11,7 @@ export interface User {
   lastName?: string
   isActive: boolean
   status: "active" | "deactivated" | "deleted"
+  assignedTeacher?: User | string | null
   createdAt: string
   updatedAt: string
 }
@@ -107,6 +108,25 @@ class UserService {
     return apiClient.request("/auth/change-password", {
       method: "POST",
       body: { currentPassword, newPassword },
+    })
+  }
+
+  /**
+   * Assign a teacher to a student (Admin only)
+   */
+  async assignTeacher(studentId: string, teacherId: string): Promise<{ success: boolean; message: string; data: User }> {
+    return apiClient.request(`/admin/assign-teacher/${studentId}`, {
+      method: "POST",
+      body: { teacherId },
+    })
+  }
+
+  /**
+   * Unassign a teacher from a student (Admin only)
+   */
+  async unassignTeacher(studentId: string): Promise<{ success: boolean; message: string; data: User }> {
+    return apiClient.request(`/admin/unassign-teacher/${studentId}`, {
+      method: "DELETE",
     })
   }
 

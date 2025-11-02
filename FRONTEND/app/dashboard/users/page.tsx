@@ -24,6 +24,7 @@ import { useEffect, useState } from "react"
 import { userService, type User } from "@/services/user-service"
 import { useToast } from "@/hooks/use-toast"
 import { CreateUserForm } from "@/components/forms/create-user-form"
+import { EditUserForm } from "@/components/forms/edit-user-form"
 import { UsersSkeleton } from "@/components/skeletons"
 
 export default function UsersPage() {
@@ -42,6 +43,7 @@ export default function UsersPage() {
   const limit = 10
   const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false)
   const [userToDelete, setUserToDelete] = useState<User | null>(null)
+  const [userToEdit, setUserToEdit] = useState<User | null>(null)
 
   const isAdmin = user?.role === "admin"
   const isTeacher = user?.role === "teacher"
@@ -294,7 +296,12 @@ export default function UsersPage() {
                                 </Button>
                               ) : (
                                 <>
-                                  <Button variant="outline" size="sm" className="gap-1">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="gap-1"
+                                    onClick={() => setUserToEdit(u)}
+                                  >
                                     <Pencil className="w-4 h-4" /> Edit
                                   </Button>
                                   {u.status === "active" ? (
@@ -400,6 +407,14 @@ export default function UsersPage() {
         open={createUserDialogOpen}
         onOpenChange={setCreateUserDialogOpen}
         onSuccess={fetchUsers}
+      />
+
+      {/* Edit User Dialog */}
+      <EditUserForm
+        open={!!userToEdit}
+        onOpenChange={(open) => !open && setUserToEdit(null)}
+        onSuccess={fetchUsers}
+        user={userToEdit}
       />
 
       {/* Delete Confirmation Dialog */}

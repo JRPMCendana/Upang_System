@@ -52,8 +52,7 @@ const userSchema = new mongoose.Schema({
     default: null
   }
 }, {
-  timestamps: true,
-  collection: 'users'
+  timestamps: true
 });
 
 // Only create indexes that don't already exist from unique: true
