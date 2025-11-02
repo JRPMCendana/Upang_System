@@ -1,22 +1,22 @@
-const AssignmentSubmission = require('../models/AssignmentSubmission.model');
-const Assignment = require('../models/Assignment.model');
+const QuizSubmission = require('../models/QuizSubmission.model');
+const Quiz = require('../models/Quiz.model');
 const User = require('../models/User.model');
 const DbUtils = require('../utils/db.utils');
 const { uploadToGridFS, deleteFileFromGridFS } = require('../middleware/upload.middleware');
 
-class SubmissionService {
-  static async submitAssignment(assignmentId, studentId, file) {
+class QuizSubmissionService {
+  static async submitQuiz(quizId, studentId, file) {
     try {
-      // Verify assignment exists
-      const assignment = await Assignment.findById(assignmentId);
-      if (!assignment) {
+      // Verify quiz exists
+      const quiz = await Quiz.findById(quizId);
+      if (!quiz) {
         throw {
           status: 404,
-          message: 'Assignment not found'
+          message: 'Quiz not found'
         };
       }
 
-      // Verify student exists and is assigned to this assignment
+      // Verify student exists and is assigned to this quiz
       const student = await User.findById(studentId);
       if (!student) {
         throw {
@@ -28,47 +28,48 @@ class SubmissionService {
       if (student.role !== 'student') {
         throw {
           status: 403,
-          message: 'Only students can submit assignments'
+          message: 'Only students can submit quizzes'
         };
       }
 
-      const isAssigned = assignment.assignedTo.some(
+      const isAssigned = quiz.assignedTo.some(
         id => id.toString() === studentId.toString()
       );
 
       if (!isAssigned) {
         throw {
           status: 403,
-          message: 'You are not assigned to this assignment'
-        };
-      }
-
-      // Check if due date has passed
-      if (new Date(assignment.dueDate) < new Date()) {
-        throw {
-          status: 400,
-          message: 'Cannot submit assignment. Due date has passed.'
+          message: 'You are not assigned to this quiz'
         };
       }
 
       if (!file) {
         throw {
           status: 400,
-          message: 'File is required for submission'
+          message: 'Screenshot/image file is required for submission'
+        };
+      }
+
+      // Verify file is an image (for screenshot)
+      const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedImageTypes.includes(file.mimetype)) {
+        throw {
+          status: 400,
+          message: 'Only image files (JPEG, PNG, GIF, WEBP) are allowed for quiz submissions'
         };
       }
 
       // Upload file to GridFS
-      const filename = `submission-${Date.now()}-${file.originalname}`;
+      const filename = `quiz-submission-${Date.now()}-${file.originalname}`;
       const fileId = await uploadToGridFS(file, filename, {
         studentId: studentId.toString(),
-        assignmentId: assignmentId.toString(),
-        submissionType: 'submission'
+        quizId: quizId.toString(),
+        submissionType: 'quiz_submission'
       });
 
       // Check if submission already exists
-      let submission = await AssignmentSubmission.findOne({
-        assignment: assignmentId,
+      let submission = await QuizSubmission.findOne({
+        quiz: quizId,
         student: studentId
       });
 
@@ -91,8 +92,8 @@ class SubmissionService {
         await submission.save();
       } else {
         // Create new submission
-        submission = await AssignmentSubmission.create({
-          assignment: assignmentId,
+        submission = await QuizSubmission.create({
+          quiz: quizId,
           student: studentId,
           submittedDocument: fileId.toString(),
           submittedDocumentName: file.originalname,
@@ -102,8 +103,8 @@ class SubmissionService {
         });
       }
 
-      const populatedSubmission = await AssignmentSubmission.findById(submission._id)
-        .populate('assignment', 'title description dueDate')
+      const populatedSubmission = await QuizSubmission.findById(submission._id)
+        .populate('quiz', 'title description')
         .populate('student', 'firstName lastName email username');
 
       return populatedSubmission;
@@ -115,15 +116,15 @@ class SubmissionService {
       const dbError = DbUtils.handleError(error);
       throw {
         status: dbError.status,
-        message: dbError.message || 'Failed to submit assignment'
+        message: dbError.message || 'Failed to submit quiz'
       };
     }
   }
 
-  static async unsubmitAssignment(assignmentId, studentId) {
+  static async unsubmitQuiz(quizId, studentId) {
     try {
-      const submission = await AssignmentSubmission.findOne({
-        assignment: assignmentId,
+      const submission = await QuizSubmission.findOne({
+        quiz: quizId,
         student: studentId
       });
 
@@ -137,7 +138,7 @@ class SubmissionService {
       if (!submission.isSubmitted) {
         throw {
           status: 400,
-          message: 'Assignment is not submitted'
+          message: 'Quiz is not submitted'
         };
       }
 
@@ -167,31 +168,24 @@ class SubmissionService {
       const dbError = DbUtils.handleError(error);
       throw {
         status: dbError.status,
-        message: dbError.message || 'Failed to unsubmit assignment'
+        message: dbError.message || 'Failed to unsubmit quiz'
       };
     }
   }
 
-  static async replaceSubmission(assignmentId, studentId, file) {
+  static async replaceSubmission(quizId, studentId, file) {
     try {
-      // Verify assignment exists and is not past due date
-      const assignment = await Assignment.findById(assignmentId);
-      if (!assignment) {
+      // Verify quiz exists
+      const quiz = await Quiz.findById(quizId);
+      if (!quiz) {
         throw {
           status: 404,
-          message: 'Assignment not found'
+          message: 'Quiz not found'
         };
       }
 
-      if (new Date(assignment.dueDate) < new Date()) {
-        throw {
-          status: 400,
-          message: 'Cannot replace submission. Due date has passed.'
-        };
-      }
-
-      const submission = await AssignmentSubmission.findOne({
-        assignment: assignmentId,
+      const submission = await QuizSubmission.findOne({
+        quiz: quizId,
         student: studentId
       });
 
@@ -205,7 +199,7 @@ class SubmissionService {
       if (!submission.isSubmitted) {
         throw {
           status: 400,
-          message: 'Assignment is not submitted. Use submit endpoint instead.'
+          message: 'Quiz is not submitted. Use submit endpoint instead.'
         };
       }
 
@@ -213,6 +207,15 @@ class SubmissionService {
         throw {
           status: 400,
           message: 'File is required'
+        };
+      }
+
+      // Verify file is an image
+      const allowedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedImageTypes.includes(file.mimetype)) {
+        throw {
+          status: 400,
+          message: 'Only image files (JPEG, PNG, GIF, WEBP) are allowed'
         };
       }
 
@@ -226,11 +229,11 @@ class SubmissionService {
       }
 
       // Upload new file to GridFS
-      const filename = `submission-${Date.now()}-${file.originalname}`;
+      const filename = `quiz-submission-${Date.now()}-${file.originalname}`;
       const fileId = await uploadToGridFS(file, filename, {
         studentId: studentId.toString(),
-        assignmentId: assignmentId.toString(),
-        submissionType: 'submission'
+        quizId: quizId.toString(),
+        submissionType: 'quiz_submission'
       });
 
       // Update submission with new file
@@ -240,8 +243,8 @@ class SubmissionService {
       submission.submittedAt = new Date();
       await submission.save();
 
-      const populatedSubmission = await AssignmentSubmission.findById(submission._id)
-        .populate('assignment', 'title description dueDate')
+      const populatedSubmission = await QuizSubmission.findById(submission._id)
+        .populate('quiz', 'title description')
         .populate('student', 'firstName lastName email username');
 
       return populatedSubmission;
@@ -258,15 +261,15 @@ class SubmissionService {
     }
   }
 
-  static async getSubmission(assignmentId, studentId) {
+  static async getSubmission(quizId, studentId) {
     try {
-      const submission = await AssignmentSubmission.findOne({
-        assignment: assignmentId,
+      const submission = await QuizSubmission.findOne({
+        quiz: quizId,
         student: studentId
       })
-        .populate('assignment', 'title description dueDate assignedBy')
+        .populate('quiz', 'title description assignedBy')
         .populate('student', 'firstName lastName email username')
-        .populate('assignment.assignedBy', 'firstName lastName');
+        .populate('quiz.assignedBy', 'firstName lastName');
 
       return submission;
     } catch (error) {
@@ -282,7 +285,7 @@ class SubmissionService {
     }
   }
 
-  static async getSubmissionsByAssignment(assignmentId, teacherId, page = 1, limit = 10) {
+  static async getSubmissionsByQuiz(quizId, teacherId, page = 1, limit = 10) {
     try {
       const pageNum = parseInt(page, 10);
       const limitNum = parseInt(limit, 10);
@@ -301,31 +304,31 @@ class SubmissionService {
         };
       }
 
-      // Verify assignment exists and belongs to teacher
-      const assignment = await Assignment.findById(assignmentId);
-      if (!assignment) {
+      // Verify quiz exists and belongs to teacher
+      const quiz = await Quiz.findById(quizId);
+      if (!quiz) {
         throw {
           status: 404,
-          message: 'Assignment not found'
+          message: 'Quiz not found'
         };
       }
 
-      if (assignment.assignedBy.toString() !== teacherId.toString()) {
+      if (quiz.assignedBy.toString() !== teacherId.toString()) {
         throw {
           status: 403,
-          message: 'Access denied. You can only view submissions for your own assignments.'
+          message: 'Access denied. You can only view submissions for your own quizzes.'
         };
       }
 
       const skip = (pageNum - 1) * limitNum;
 
       const [submissions, total] = await Promise.all([
-        AssignmentSubmission.find({ assignment: assignmentId })
+        QuizSubmission.find({ quiz: quizId })
           .populate('student', 'firstName lastName email username')
           .sort({ submittedAt: -1 })
           .skip(skip)
           .limit(limitNum),
-        AssignmentSubmission.countDocuments({ assignment: assignmentId })
+        QuizSubmission.countDocuments({ quiz: quizId })
       ]);
 
       const totalPages = Math.ceil(total / limitNum);
@@ -363,8 +366,8 @@ class SubmissionService {
         };
       }
 
-      const submission = await AssignmentSubmission.findById(submissionId)
-        .populate('assignment');
+      const submission = await QuizSubmission.findById(submissionId)
+        .populate('quiz');
 
       if (!submission) {
         throw {
@@ -373,11 +376,11 @@ class SubmissionService {
         };
       }
 
-      // Verify teacher owns this assignment
-      if (submission.assignment.assignedBy.toString() !== teacherId.toString()) {
+      // Verify teacher owns this quiz
+      if (submission.quiz.assignedBy.toString() !== teacherId.toString()) {
         throw {
           status: 403,
-          message: 'Access denied. You can only grade submissions for your own assignments.'
+          message: 'Access denied. You can only grade submissions for your own quizzes.'
         };
       }
 
@@ -385,7 +388,7 @@ class SubmissionService {
       if (!submission.isSubmitted) {
         throw {
           status: 400,
-          message: 'Cannot grade submission. Assignment has not been submitted yet.'
+          message: 'Cannot grade submission. Quiz has not been submitted yet.'
         };
       }
 
@@ -394,8 +397,8 @@ class SubmissionService {
       submission.gradedAt = new Date();
       await submission.save();
 
-      const populatedSubmission = await AssignmentSubmission.findById(submissionId)
-        .populate('assignment', 'title description dueDate')
+      const populatedSubmission = await QuizSubmission.findById(submissionId)
+        .populate('quiz', 'title description')
         .populate('student', 'firstName lastName email username');
 
       return populatedSubmission;
@@ -413,5 +416,5 @@ class SubmissionService {
   }
 }
 
-module.exports = SubmissionService;
+module.exports = QuizSubmissionService;
 
