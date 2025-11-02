@@ -19,6 +19,7 @@ const TEST_USERS = {
   admin: { email: "admin@test.com", password: "password123" },
 }
 
+import ForgotPasswordForm from "@/components/forms/forgot-password-form"
 export function LoginForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -27,6 +28,7 @@ export function LoginForm() {
   const [error, setError] = useState("")
   const router = useRouter()
   const { login } = useAuth()
+  const [showForgot, setShowForgot] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -58,7 +60,8 @@ export function LoginForm() {
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="space-y-6">
+      {!showForgot && (
+        <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-2">
           <Label htmlFor="role">Role</Label>
           <Select value={role} onValueChange={(value) => setRole(value as UserRole)}>
@@ -116,6 +119,22 @@ export function LoginForm() {
           {isLoading ? "Signing in..." : "Sign In"}
         </Button>
       </form>
+      )}
+
+      {/* Forgot password toggle */}
+      {!showForgot ? (
+        <div className="mt-4 text-center">
+          <button
+            type="button"
+            className="text-sm text-primary hover:underline font-medium"
+            onClick={() => setShowForgot(true)}
+          >
+            Forgot password?
+          </button>
+        </div>
+      ) : (
+        <ForgotPasswordForm onDone={() => setShowForgot(false)} />
+      )}
 
       {/* Quick fill buttons for testing */}
       <div className="mt-6 pt-6 border-t border-border">
