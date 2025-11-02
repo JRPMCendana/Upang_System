@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { FileText, Calendar, Search, Eye, Pencil, Archive } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 
 export default function StudentSubmissionsPage() {
   const { user, isAuthenticated } = useAuth()
@@ -35,18 +35,14 @@ export default function StudentSubmissionsPage() {
     { id: 4, student: "Bob Williams", activity: "Portfolio Website", course: "Advanced CSS", score: 88, date: "2025-10-18" },
   ]
 
-  const submissions = useMemo(
-    () =>
-      mockSubmissions.filter((s) => {
-        const q = searchQuery.toLowerCase()
-        return (
-          s.student.toLowerCase().includes(q) ||
-          s.activity.toLowerCase().includes(q) ||
-          s.course.toLowerCase().includes(q)
-        )
-      }),
-    [searchQuery],
-  )
+  const submissions = mockSubmissions.filter((s) => {
+    const q = searchQuery.toLowerCase()
+    return (
+      s.student.toLowerCase().includes(q) ||
+      s.activity.toLowerCase().includes(q) ||
+      s.course.toLowerCase().includes(q)
+    )
+  })
 
   return (
     <div className="flex h-screen bg-bg-secondary">

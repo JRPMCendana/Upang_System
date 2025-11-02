@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Users as UsersIcon, Search, Plus, Shield, Mail, MoreVertical, Pencil, Trash2, UserX } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 
 export default function UsersPage() {
   const { user, isAuthenticated } = useAuth()
@@ -37,19 +37,15 @@ export default function UsersPage() {
     { id: 5, name: "Admin User", email: "admin@upang.test", role: "admin", status: "active" },
   ] as const
 
-  const filteredUsers = useMemo(
-    () =>
-      mockUsers
-        // Exclude admin accounts from the listing (admins monitor students/teachers only)
-        .filter((u) => u.role === "student" || u.role === "teacher")
-        .filter((u) => {
-          const matchesRole = roleFilter === "all" || u.role === roleFilter
-          const q = searchQuery.toLowerCase()
-          const matchesQuery = u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
-          return matchesRole && matchesQuery
-        }),
-    [mockUsers, roleFilter, searchQuery],
-  )
+  const filteredUsers = mockUsers
+    // Exclude admin accounts from the listing (admins monitor students/teachers only)
+    .filter((u) => u.role === "student" || u.role === "teacher")
+    .filter((u) => {
+      const matchesRole = roleFilter === "all" || u.role === roleFilter
+      const q = searchQuery.toLowerCase()
+      const matchesQuery = u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
+      return matchesRole && matchesQuery
+    })
 
   const roleBadge = (role: string) => {
     switch (role) {

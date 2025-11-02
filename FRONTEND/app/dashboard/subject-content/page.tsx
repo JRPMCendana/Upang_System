@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { FileText, MoreVertical, Search, Eye, Pencil, Trash2 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 
 export default function SubjectContentPage() {
   const { user, isAuthenticated } = useAuth()
@@ -34,18 +34,14 @@ export default function SubjectContentPage() {
     { id: 4, course: "Advanced CSS", fileName: "animations-demo.mp4", type: "MP4", size: "18.4 MB", uploadedBy: "Prof. Brown", uploadedAt: "2025-10-05" },
   ]
 
-  const files = useMemo(
-    () =>
-      mockFiles.filter((f) => {
-        const q = searchQuery.toLowerCase()
-        return (
-          f.fileName.toLowerCase().includes(q) ||
-          f.course.toLowerCase().includes(q) ||
-          f.uploadedBy.toLowerCase().includes(q)
-        )
-      }),
-    [searchQuery],
-  )
+  const files = mockFiles.filter((f) => {
+    const q = searchQuery.toLowerCase()
+    return (
+      f.fileName.toLowerCase().includes(q) ||
+      f.course.toLowerCase().includes(q) ||
+      f.uploadedBy.toLowerCase().includes(q)
+    )
+  })
 
   return (
     <div className="flex h-screen bg-bg-secondary">
