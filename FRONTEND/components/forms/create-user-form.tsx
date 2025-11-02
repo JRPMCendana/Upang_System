@@ -291,15 +291,6 @@ export function CreateUserForm({ open, onOpenChange, onSuccess }: CreateUserForm
 
           <DialogFooter className="pt-4 flex justify-center gap-2">
             <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={loading}
-              size="sm"
-            >
-              Cancel
-            </Button>
-            <Button
               type="submit"
               className="bg-primary hover:bg-primary-dark"
               disabled={loading}
