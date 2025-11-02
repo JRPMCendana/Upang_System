@@ -1,16 +1,10 @@
 // Assignment Management Service
 
 import { apiClient } from "./api-client"
+import type { Assignment } from "@/types/assignment.types"
 
-export interface Assignment {
-  id: string
-  courseId: string
-  title: string
-  description: string
-  dueDate: string
-  status: "pending" | "submitted" | "graded"
-  grade?: number
-}
+// Re-export types for backward compatibility
+export type { Assignment } from "@/types/assignment.types"
 
 class AssignmentService {
   async getAssignments(courseId?: string) {

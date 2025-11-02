@@ -1,24 +1,12 @@
 // Quiz Management Service
 
 import { apiClient } from "./api-client"
+import type { Quiz, Question } from "@/types/quiz.types"
 
-export interface Quiz {
-  id: string
-  courseId: string
-  title: string
-  questions: Question[]
-  timeLimit: number
-  passingScore: number
-}
+// Re-export types for backward compatibility
+export type { Quiz, Question } from "@/types/quiz.types"
 
-export interface Question {
-  id: string
-  text: string
-  type: "multiple-choice" | "short-answer"
-  options?: string[]
-  correctAnswer?: string | string[]
-}
-
+// Keep QuizResponse for backward compatibility
 export interface QuizResponse {
   quizId: string
   answers: Record<string, string>
