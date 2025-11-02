@@ -5,21 +5,9 @@ const config = require('../config/config');
 const DbUtils = require('../utils/db.utils');
 
 class AuthService {
-  /**
-   * Login user with username/email and password
-   * @param {string} usernameOrEmail - Username or email
-   * @param {string} password - Plain text password
-   * @returns {Promise<{user: Object, token: string}>}
-   */
-  static async login(usernameOrEmail, password) {
+  static async login(email, password) {
     try {
-      // Find user by username or email
-      const user = await User.findOne({
-        $or: [
-          { username: usernameOrEmail },
-          { email: usernameOrEmail }
-        ]
-      });
+      const user = await User.findOne({ email });
 
       if (!user) {
         throw {
@@ -28,7 +16,6 @@ class AuthService {
         };
       }
 
-      // Check if user is active
       if (!user.isActive) {
         throw {
           status: 403,
@@ -36,7 +23,6 @@ class AuthService {
         };
       }
 
-      // Verify password
       const isPasswordValid = await bcrypt.compare(password, user.password);
       
       if (!isPasswordValid) {
@@ -46,33 +32,17 @@ class AuthService {
         };
       }
 
-      // Generate JWT token
       const token = this.generateToken(user);
 
-      // Return user data (without password) and token
-      const userData = {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        isActive: user.isActive,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt
-      };
-
       return {
-        user: userData,
-        token
+        token,
+        role: user.role
       };
     } catch (error) {
-      // If error already has status, rethrow it
       if (error.status) {
         throw error;
       }
 
-      // Handle database errors
       const dbError = DbUtils.handleError(error);
       throw {
         status: dbError.status,
@@ -81,11 +51,6 @@ class AuthService {
     }
   }
 
-  /**
-   * Generate JWT token for user
-   * @param {Object} user - User object
-   * @returns {string} JWT token
-   */
   static generateToken(user) {
     const payload = {
       id: user._id,
@@ -99,11 +64,6 @@ class AuthService {
     });
   }
 
-  /**
-   * Verify JWT token
-   * @param {string} token - JWT token
-   * @returns {Object} Decoded token payload
-   */
   static verifyToken(token) {
     try {
       return jwt.verify(token, config.jwt.secret);
@@ -115,11 +75,78 @@ class AuthService {
     }
   }
 
-  /**
-   * Get user by ID
-   * @param {string} userId - User ID
-   * @returns {Promise<Object>} User object
-   */
+  static async createAccount(userData) {
+    try {
+      const { email, password, username, role, firstName, lastName } = userData;
+
+      if (!email || !password || !username || !role) {
+        throw {
+          status: 400,
+          message: 'Email, password, username, and role are required'
+        };
+      }
+
+      if (!['student', 'teacher'].includes(role)) {
+        throw {
+          status: 400,
+          message: 'Invalid role. Administrators can only create student or teacher accounts'
+        };
+      }
+
+      if (password.length < 6) {
+        throw {
+          status: 400,
+          message: 'Password must be at least 6 characters'
+        };
+      }
+
+      const existingUser = await User.findOne({
+        $or: [{ email }, { username }]
+      });
+
+      if (existingUser) {
+        throw {
+          status: 409,
+          message: existingUser.email === email ? 'Email already exists' : 'Username already exists'
+        };
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      const newUser = await User.create({
+        email,
+        password: hashedPassword,
+        username,
+        role,
+        firstName: firstName || '',
+        lastName: lastName || '',
+        isActive: true
+      });
+
+      return {
+        id: newUser._id,
+        username: newUser.username,
+        email: newUser.email,
+        role: newUser.role,
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+        isActive: newUser.isActive,
+        createdAt: newUser.createdAt,
+        updatedAt: newUser.updatedAt
+      };
+    } catch (error) {
+      if (error.status) {
+        throw error;
+      }
+
+      const dbError = DbUtils.handleError(error);
+      throw {
+        status: dbError.status,
+        message: dbError.message || 'Account creation failed'
+      };
+    }
+  }
+
   static async getUserById(userId) {
     try {
       const user = await User.findById(userId).select('-password');
