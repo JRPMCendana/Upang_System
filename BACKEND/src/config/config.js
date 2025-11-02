@@ -17,6 +17,17 @@ module.exports = {
   jwt: {
     secret: process.env.JWT_SECRET || 'your-secret-key-change-in-production',
     expiresIn: process.env.JWT_EXPIRES_IN || '7d'
+  },
+  email: {
+    host: process.env.SMTP_HOST,
+    port: process.env.SMTP_PORT || 587,
+    secure: process.env.SMTP_SECURE === 'true',
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASSWORD
+    },
+    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000'
   }
 };
 
