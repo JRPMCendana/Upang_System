@@ -1,65 +1,18 @@
-// User Management Service
+// User Management Service - Infrastructure Layer
+// Pure API calls, no business logic
 
 import { apiClient } from "./api-client"
+import type {
+  User,
+  CreateUserData,
+  UpdateUserData,
+  GetUsersResponse,
+  CreateUserResponse,
+  UpdateUserResponse,
+} from "@/types/user.types"
 
-export interface User {
-  _id: string
-  username: string
-  email: string
-  role: "student" | "teacher" | "administrator"
-  firstName?: string
-  lastName?: string
-  isActive: boolean
-  status: "active" | "deactivated" | "deleted"
-  assignedTeacher?: User | string | null
-  createdAt: string
-  updatedAt: string
-}
-
-export interface CreateUserData {
-  email: string
-  password: string
-  username: string
-  role: "student" | "teacher"
-  firstName?: string
-  lastName?: string
-}
-
-export interface UpdateUserData {
-  email?: string
-  password?: string
-  username?: string
-  firstName?: string
-  lastName?: string
-  status?: "active" | "deactivated" | "deleted"
-}
-
-export interface PaginationInfo {
-  currentPage: number
-  limit: number
-  totalItems: number
-  totalPages: number
-  hasNextPage: boolean
-  hasPrevPage: boolean
-}
-
-export interface GetUsersResponse {
-  success: boolean
-  data: User[]
-  pagination: PaginationInfo
-}
-
-export interface CreateUserResponse {
-  success: boolean
-  message: string
-  data: User
-}
-
-export interface UpdateUserResponse {
-  success: boolean
-  message: string
-  data: User
-}
+// Re-export types for backward compatibility
+export type { User, CreateUserData, UpdateUserData }
 
 class UserService {
   /**
@@ -152,30 +105,6 @@ class UserService {
     return apiClient.request(`/teacher/assigned-students/${studentId}`, {
       method: "GET",
     })
-  }
-
-  /**
-   * Get user's full name
-   */
-  getUserFullName(user: User): string {
-    if (user.firstName && user.lastName) {
-      return `${user.firstName} ${user.lastName}`
-    }
-    if (user.firstName) return user.firstName
-    if (user.lastName) return user.lastName
-    return user.username
-  }
-
-  /**
-   * Get user initials for avatar
-   */
-  getUserInitials(user: User): string {
-    if (user.firstName && user.lastName) {
-      return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
-    }
-    if (user.firstName) return user.firstName[0].toUpperCase()
-    if (user.lastName) return user.lastName[0].toUpperCase()
-    return user.username.substring(0, 2).toUpperCase()
   }
 }
 

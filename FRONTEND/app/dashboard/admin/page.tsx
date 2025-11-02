@@ -8,20 +8,24 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
-import { userService, type User } from "@/services/user-service"
-import { useToast } from "@/hooks/use-toast"
+import { useEffect } from "react"
 import { DashboardSkeleton } from "@/components/skeletons"
+import { getUserFullName } from "@/utils/user.utils"
+import { useAdminStats } from "@/hooks/use-admin-stats"
 
 export default function AdminDashboard() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
-  const { toast } = useToast()
-
-  const [recentUsers, setRecentUsers] = useState<User[]>([])
-  const [loading, setLoading] = useState(true)
-  const [totalStudents, setTotalStudents] = useState(0)
-  const [totalTeachers, setTotalTeachers] = useState(0)
+  
+  // Use custom hook for admin statistics
+  const {
+    recentUsers,
+    recentUsersLoading,
+    totalStudents,
+    totalTeachers,
+    statsLoading,
+    refreshAll,
+  } = useAdminStats()
 
   useEffect(() => {
     // Wait for auth to finish loading before checking
@@ -34,42 +38,9 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (isAuthenticated && user?.role === "admin") {
-      fetchRecentUsers()
-      fetchUserStats()
+      refreshAll()
     }
-  }, [isAuthenticated, user])
-
-  const fetchRecentUsers = async () => {
-    try {
-      setLoading(true)
-      // Fetch first 5 active users sorted by creation date (most recent)
-      const response = await userService.getUsers(1, 5, undefined, "active")
-      setRecentUsers(response.data)
-    } catch (error) {
-      console.error("Error fetching recent users:", error)
-      toast({
-        title: "Error",
-        description: "Failed to load recent users.",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchUserStats = async () => {
-    try {
-      // Fetch active student count
-      const studentsResponse = await userService.getUsers(1, 1, "student", "active")
-      setTotalStudents(studentsResponse.pagination.totalItems)
-
-      // Fetch active teacher count
-      const teachersResponse = await userService.getUsers(1, 1, "teacher", "active")
-      setTotalTeachers(teachersResponse.pagination.totalItems)
-    } catch (error) {
-      console.error("Error fetching user stats:", error)
-    }
-  }
+  }, [isAuthenticated, user, refreshAll])
 
   const getRoleBadge = (role: string) => {
     switch (role) {
@@ -98,7 +69,7 @@ export default function AdminDashboard() {
   }
 
   // Show loading state while checking auth or fetching data
-  if (authLoading || loading) {
+  if (authLoading || recentUsersLoading || statsLoading) {
     return (
       <div className="flex h-screen bg-bg-secondary">
         <Sidebar />
@@ -192,7 +163,7 @@ export default function AdminDashboard() {
                 </Button>
               </div>
 
-              {loading ? (
+              {recentUsersLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 </div>
@@ -211,7 +182,7 @@ export default function AdminDashboard() {
                         </div>
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <p className="font-medium">{userService.getUserFullName(u)}</p>
+                            <p className="font-medium">{getUserFullName(u)}</p>
                             {getRoleBadge(u.role)}
                           </div>
                           <p className="text-sm text-text-secondary">

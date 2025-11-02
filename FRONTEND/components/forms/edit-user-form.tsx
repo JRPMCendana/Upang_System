@@ -22,6 +22,7 @@ import {
 import { Loader2, UserCog, Eye, EyeOff } from "lucide-react"
 import { userService, type User } from "@/services/user-service"
 import { useToast } from "@/hooks/use-toast"
+import { getUserFullName } from "@/utils/user.utils"
 
 interface EditUserFormProps {
   open: boolean
@@ -339,7 +340,7 @@ export function EditUserForm({ open, onOpenChange, onSuccess, user }: EditUserFo
                     <SelectItem value="none">No teacher assigned</SelectItem>
                     {teachers.map((teacher) => (
                       <SelectItem key={teacher._id} value={teacher._id}>
-                        {userService.getUserFullName(teacher)} (@{teacher.username})
+                        {getUserFullName(teacher)} (@{teacher.username})
                       </SelectItem>
                     ))}
                   </SelectContent>
