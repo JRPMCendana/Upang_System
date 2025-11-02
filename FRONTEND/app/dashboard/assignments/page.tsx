@@ -87,7 +87,7 @@ export default function AssignmentsPage() {
       case "overdue":
         return { bg: "bg-danger/10", text: "text-danger", label: "Overdue" }
       default:
-        return { bg: "bg-gray-100", text: "text-gray-600", label: "Unknown" }
+        return { bg: "bg-bg-tertiary", text: "text-text-secondary", label: "Unknown" }
     }
   }
 

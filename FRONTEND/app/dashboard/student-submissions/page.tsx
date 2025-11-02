@@ -79,7 +79,7 @@ export default function StudentSubmissionsPage() {
                 <Card key={s.id} className="p-6 hover:shadow-lg transition">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
                         <FileText className="w-6 h-6 text-primary" />
                       </div>
                       <div>

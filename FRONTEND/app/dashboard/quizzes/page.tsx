@@ -88,7 +88,7 @@ export default function QuizzesPage() {
       case "draft":
         return { bg: "bg-warning/10", text: "text-warning", label: "Draft" }
       default:
-        return { bg: "bg-gray-100", text: "text-gray-600", label: "Unknown" }
+        return { bg: "bg-bg-tertiary", text: "text-text-secondary", label: "Unknown" }
     }
   }
 
@@ -141,7 +141,7 @@ export default function QuizzesPage() {
                   <Card key={quiz.id} className="p-6 hover:shadow-lg transition">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-start gap-4 flex-1">
-                        <div className="w-12 h-12 bg-warning/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                        <div className="w-12 h-12 bg-warning/10 rounded-lg flex items-center justify-center shrink-0 mt-1">
                           <ClipboardList className="w-6 h-6 text-warning" />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -152,7 +152,7 @@ export default function QuizzesPage() {
                           <p className="text-sm text-text-secondary mb-2">{quiz.course}</p>
                         </div>
                       </div>
-                      <Button variant="ghost" size="icon" className="text-text-secondary flex-shrink-0">
+                      <Button variant="ghost" size="icon" className="text-text-secondary shrink-0">
                         <MoreVertical className="w-5 h-5" />
                       </Button>
                     </div>

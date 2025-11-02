@@ -39,6 +39,24 @@
   --sidebar-accent-foreground: #111827;
   --sidebar-border: #e5e7eb;
   --sidebar-ring: #10b981;
+  
+  /* UPangLearn Custom Design Tokens */
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f9fafb;
+  --color-bg-tertiary: #f3f4f6;
+  --color-text-primary: #111827;
+  --color-text-secondary: #6b7280;
+  --color-text-tertiary: #9ca3af;
+  --color-border: #e5e7eb;
+  --color-border-light: #f3f4f6;
+  --color-primary: #10b981;
+  --color-primary-dark: #059669;
+  --color-primary-light: #34d399;
+  --color-accent: #2563eb;
+  --color-accent-light: #60a5fa;
+  --color-accent-dark: #1e40af;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
 }
 
 .dark {
@@ -74,30 +92,58 @@
   --sidebar-accent-foreground: #f8fafc;
   --sidebar-border: #1f2937;
   --sidebar-ring: #10b981;
+  
+  /* UPangLearn Custom Design Tokens - Dark Mode */
+  --color-bg-primary: #0f172a;
+  --color-bg-secondary: #1e293b;
+  --color-bg-tertiary: #1f2937;
+  --color-text-primary: #f8fafc;
+  --color-text-secondary: #9ca3af;
+  --color-text-tertiary: #6b7280;
+  --color-border: #374151;
+  --color-border-light: #1f2937;
+  --color-primary: #10b981;
+  --color-primary-dark: #059669;
+  --color-primary-light: #34d399;
+  --color-accent: #60a5fa;
+  --color-accent-light: #93c5fd;
+  --color-accent-dark: #2563eb;
+  --color-warning: #fbbf24;
+  --color-danger: #f87171;
 }
 
 @theme inline {
-  /* optional: --font-sans, --font-serif, --font-mono if they are applied in the layout.tsx */
+  /* Fonts */
   --font-sans: "Geist", "Geist Fallback";
   --font-mono: "Geist Mono", "Geist Mono Fallback";
 
-  /* UPangLearn Color System (brand = green) */
-  --color-primary: #10b981; /* emerald */
-  --color-primary-dark: #059669;
-  --color-primary-light: #34d399;
-  --color-accent: #2563eb; /* blue as secondary accent */
-  --color-accent-light: #60a5fa;
-  --color-accent-dark: #1e40af;
-  --color-warning: #f59e0b;
-  --color-danger: #ef4444;
-  --color-bg-primary: #ffffff;
-  --color-bg-secondary: #f9fafb;
-  --color-bg-tertiary: #f3f4f6;
-  --color-text-primary: #111827;
-  --color-text-secondary: #6b7280;
-  --color-text-tertiary: #9ca3af;
-  --color-border: #e5e7eb;
-  --color-border-light: #f3f4f6;
+  /* Register custom background colors */
+  --color-bg-primary: var(--color-bg-primary);
+  --color-bg-secondary: var(--color-bg-secondary);
+  --color-bg-tertiary: var(--color-bg-tertiary);
+  
+  /* Register custom text colors */
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-tertiary: var(--color-text-tertiary);
+  
+  /* Register primary brand colors */
+  --color-primary: var(--color-primary);
+  --color-primary-dark: var(--color-primary-dark);
+  --color-primary-light: var(--color-primary-light);
+  
+  /* Register accent colors */
+  --color-accent: var(--color-accent);
+  --color-accent-light: var(--color-accent-light);
+  --color-accent-dark: var(--color-accent-dark);
+  
+  /* Register status colors */
+  --color-warning: var(--color-warning);
+  --color-danger: var(--color-danger);
+  
+  /* Register border colors */
+  --color-border: var(--color-border);
+  --color-border-light: var(--color-border-light);
 
   --background: theme("--color-bg-primary");
   --foreground: theme("--color-text-primary");
@@ -161,6 +207,55 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Custom utility classes for UPangLearn design system */
+@layer utilities {
+  .bg-bg-primary {
+    background-color: var(--color-bg-primary);
+  }
+  .bg-bg-secondary {
+    background-color: var(--color-bg-secondary);
+  }
+  .bg-bg-tertiary {
+    background-color: var(--color-bg-tertiary);
+  }
+  .text-primary {
+    color: var(--color-primary);
+  }
+  .text-text-primary {
+    color: var(--color-text-primary);
+  }
+  .text-text-secondary {
+    color: var(--color-text-secondary);
+  }
+  .text-text-tertiary {
+    color: var(--color-text-tertiary);
+  }
+  .border-border {
+    border-color: var(--color-border);
+  }
+  .border-border-light {
+    border-color: var(--color-border-light);
+  }
+  .text-accent {
+    color: var(--color-accent);
+  }
+  .bg-accent {
+    background-color: var(--color-accent);
+  }
+  .text-warning {
+    color: var(--color-warning);
+  }
+  .bg-warning {
+    background-color: var(--color-warning);
+  }
+  .text-danger {
+    color: var(--color-danger);
+  }
+  .bg-danger {
+    background-color: var(--color-danger);
   }
 }
 

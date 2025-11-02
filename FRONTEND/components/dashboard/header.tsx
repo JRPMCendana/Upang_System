@@ -26,7 +26,7 @@ export function Header() {
   }
 
   return (
-    <header className="flex items-center justify-between px-8 py-4 border-b border-border bg-white">
+    <header className="flex items-center justify-between px-8 py-4 border-b border-border bg-bg-primary">
       <div className="flex items-center gap-4 flex-1 max-w-xl">
       </div>
 
