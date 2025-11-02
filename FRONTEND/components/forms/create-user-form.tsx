@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Loader2, UserPlus } from "lucide-react"
+import { Loader2, UserPlus, Eye, EyeOff } from "lucide-react"
 import { userService } from "@/services/user-service"
 import { useToast } from "@/hooks/use-toast"
 
@@ -32,6 +32,7 @@ interface CreateUserFormProps {
 export function CreateUserForm({ open, onOpenChange, onSuccess }: CreateUserFormProps) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -223,15 +224,29 @@ export function CreateUserForm({ open, onOpenChange, onSuccess }: CreateUserForm
                 <Label htmlFor="password" className="text-sm">
                   Password <span className="text-danger">*</span>
                 </Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Min. 6 characters"
-                  value={formData.password}
-                  onChange={(e) => handleChange("password", e.target.value)}
-                  className={`h-9 ${errors.password ? "border-danger" : ""}`}
-                  disabled={loading}
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Min. 6 characters"
+                    value={formData.password}
+                    onChange={(e) => handleChange("password", e.target.value)}
+                    className={`h-9 pr-10 ${errors.password ? "border-danger" : ""}`}
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary transition-colors"
+                    disabled={loading}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
                 {errors.password && (
                   <p className="text-xs text-danger">{errors.password}</p>
                 )}
