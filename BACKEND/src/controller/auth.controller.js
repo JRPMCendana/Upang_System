@@ -34,30 +34,33 @@ class AuthController {
     }
   }
 
-  static async createAccount(req, res, next) {
+  static async changePassword(req, res, next) {
     try {
-      const { email, password, username, role, firstName, lastName } = req.body;
+      const userId = req.user.id;
+      const { currentPassword, newPassword } = req.body;
 
-      if (!email || !password || !username || !role) {
+      if (!currentPassword || !newPassword) {
         return res.status(400).json({
           error: 'Validation Error',
-          message: 'Email, password, username, and role are required'
+          message: 'Current password and new password are required'
         });
       }
 
-      const result = await AuthService.createAccount({
-        email,
-        password,
-        username,
-        role,
-        firstName,
-        lastName
-      });
+      const trimmedCurrentPassword = currentPassword.trim();
+      const trimmedNewPassword = newPassword.trim();
 
-      res.status(201).json({
+      if (!trimmedCurrentPassword || !trimmedNewPassword) {
+        return res.status(400).json({
+          error: 'Validation Error',
+          message: 'Current password and new password are required'
+        });
+      }
+
+      const result = await AuthService.changePassword(userId, trimmedCurrentPassword, trimmedNewPassword);
+
+      res.status(200).json({
         success: true,
-        message: 'Account created successfully',
-        data: result
+        message: result.message
       });
     } catch (error) {
       next(error);
