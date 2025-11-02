@@ -123,12 +123,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       return normalized
     } catch (err: any) {
-      setError("Login failed. Please check your credentials.")
-      toast({
-        title: "Login Failed",
-        description: "Please check your email and password.",
-        variant: "destructive",
-      })
+      // Handle specific error messages from backend
+      const errorMessage = err.message || "Login failed. Please check your credentials."
+      const status = err.status
+      
+      setError(errorMessage)
+      
+      // Show specific toast based on error status
+      if (status === 403 && errorMessage.includes('deleted')) {
+        toast({
+          title: "Account Deleted",
+          description: "Your account has been deleted. Please contact the administrator for assistance.",
+          variant: "destructive",
+        })
+      } else if (status === 403) {
+        toast({
+          title: "Account Deactivated",
+          description: errorMessage,
+          variant: "destructive",
+        })
+      } else if (status === 401) {
+        toast({
+          title: "Invalid Credentials",
+          description: "The email or password you entered is incorrect. Please try again.",
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Login Failed",
+          description: errorMessage,
+          variant: "destructive",
+        })
+      }
+      
       throw err
     } finally {
       setIsLoading(false)

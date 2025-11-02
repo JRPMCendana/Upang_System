@@ -30,33 +30,38 @@ export interface AuthResponse {
 
 class AuthService {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    // Backend returns { success, message, data: { token, role } } in this codebase
-    // and /auth/me returns { success, data: user }
-    const raw = await apiClient.request<any>("/auth/login", {
-      method: "POST",
-      body: credentials,
-    })
+    try {
+      // Backend returns { success, message, data: { token, role } } in this codebase
+      // and /auth/me returns { success, data: user }
+      const raw = await apiClient.request<any>("/auth/login", {
+        method: "POST",
+        body: credentials,
+      })
 
-    const wrapped = raw && raw.data && raw.data.token
-    const token: string | undefined = wrapped ? raw.data.token : raw.token
-    let user = wrapped ? raw.data.user : raw.user
+      const wrapped = raw && raw.data && raw.data.token
+      const token: string | undefined = wrapped ? raw.data.token : raw.token
+      let user = wrapped ? raw.data.user : raw.user
 
-    if (!token) {
-      throw new Error("Invalid auth response from server: missing token")
+      if (!token) {
+        throw new Error("Invalid auth response from server: missing token")
+      }
+
+      // If the login response doesn't include the user object, fetch it via /auth/me
+      apiClient.setToken(token)
+      if (!user) {
+        const me = await apiClient.request<any>("/auth/me", { method: "GET" })
+        user = me?.data || me?.user || null
+      }
+
+      if (!user) {
+        throw new Error("Invalid auth response from server: missing user")
+      }
+
+      return { token, user }
+    } catch (error: any) {
+      // Re-throw the error to preserve status and message from backend
+      throw error
     }
-
-    // If the login response doesn't include the user object, fetch it via /auth/me
-    apiClient.setToken(token)
-    if (!user) {
-      const me = await apiClient.request<any>("/auth/me", { method: "GET" })
-      user = me?.data || me?.user || null
-    }
-
-    if (!user) {
-      throw new Error("Invalid auth response from server: missing user")
-    }
-
-    return { token, user }
   }
 
   async register(credentials: RegisterCredentials): Promise<AuthResponse> {

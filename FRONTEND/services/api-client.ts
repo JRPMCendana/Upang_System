@@ -54,25 +54,34 @@ class ApiClient {
         body: body ? JSON.stringify(body) : undefined,
       })
 
-      // Handle 401 Unauthorized - token expired or invalid
-      if (response.status === 401) {
-        this.clearToken()
-        if (typeof window !== "undefined") {
-          localStorage.removeItem("upanglearn_user")
-          // Redirect to login page
-          window.location.href = "/login"
-        }
-        throw new Error("Unauthorized: Session expired")
-      }
+      // Parse response body for error details
+      const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`)
+        // Extract error message from backend response
+        const errorMessage = data.message || data.error || `API Error: ${response.status}`
+        
+        // Handle 401 Unauthorized - but NOT during login attempts
+        if (response.status === 401 && !endpoint.includes('/auth/login')) {
+          this.clearToken()
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("upanglearn_user")
+            // Redirect to login page
+            window.location.href = "/login"
+          }
+        }
+
+        // Throw error with status and message for proper handling
+        const error: any = new Error(errorMessage)
+        error.status = response.status
+        error.message = errorMessage
+        throw error
       }
 
-      const data = await response.json()
       return data
-    } catch (error) {
+    } catch (error: any) {
       console.error("API Request Error:", error)
+      // Re-throw with status and message intact
       throw error
     }
   }

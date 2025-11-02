@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Mail, Lock, AlertCircle, Eye, EyeOff } from "lucide-react"
+import { Mail, Lock, Eye, EyeOff } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 
 import ForgotPasswordForm from "@/components/forms/forgot-password-form"
@@ -15,23 +15,22 @@ export function LoginForm() {
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
   const router = useRouter()
   const { login } = useAuth()
   const [showForgot, setShowForgot] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setError("")
     setIsLoading(true)
 
     try {
-  const user = await login(email, password)
+      const user = await login(email, password)
       // Redirect to appropriate dashboard based on returned role
       const rolePath = user.role
       router.push(`/dashboard/${rolePath}`)
     } catch (err) {
-      setError("Login failed. Please check your email/username and password.")
+      // Error is already handled and displayed via toast in auth context
+      // No need to set local error state
     } finally {
       setIsLoading(false)
     }
@@ -87,13 +86,6 @@ export function LoginForm() {
             </button>
           </div>
         </div>
-
-        {error && (
-          <div className="flex gap-2 p-3 bg-danger/10 border border-danger/20 rounded-lg">
-            <AlertCircle className="w-5 h-5 text-danger shrink-0 mt-0.5" />
-            <p className="text-sm text-danger">{error}</p>
-          </div>
-        )}
 
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? "Signing in..." : "Sign In"}
