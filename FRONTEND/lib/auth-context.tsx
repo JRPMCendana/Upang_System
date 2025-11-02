@@ -1,20 +1,11 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useState, useEffect } from "react"
-import { authService } from "@/services/auth-service"
-import { useToast } from "@/hooks/use-toast"
+import { createContext, useContext } from "react"
+import { useAuthLogic, type User, type UserRole } from "@/hooks/use-auth"
 
-export type UserRole = "student" | "teacher" | "admin"
-
-export interface User {
-  id: string
-  email: string
-  name: string
-  role: UserRole
-  enrolledCourses?: string[]
-  createdAt: string
-}
+// Re-export types for backward compatibility
+export type { User, UserRole }
 
 interface AuthContextType {
   user: User | null
@@ -27,169 +18,27 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-const mapBackendUser = (u: any): User => {
-  const role = u.role === "administrator" ? ("admin" as UserRole) : (u.role as UserRole)
-  const name = u.firstName || u.lastName ? `${u.firstName || ""} ${u.lastName || ""}`.trim() : u.name || u.username || u.email
-  return {
-    id: u.id || u._id || `user_${Date.now()}`,
-    email: u.email,
-    name,
-    role: role,
-    enrolledCourses: [],
-    createdAt: new Date().toISOString(),
-  }
-}
-
-const isTokenExpired = (token: string | null): boolean => {
-  if (!token) return true
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]))
-    if (!payload.exp) return false // If no expiration, treat as valid
-    const expirationTime = payload.exp * 1000
-    return Date.now() >= expirationTime
-  } catch (error) {
-    console.error('Error checking token expiration:', error)
-    return true
-  }
-}
-
+/**
+ * Auth Provider Component
+ * Provides authentication context to the entire application
+ * Uses useAuthLogic hook for business logic (Clean Architecture)
+ */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const { toast } = useToast()
-
-  useEffect(() => {
-    // Only run on client side
-    if (typeof window === 'undefined') {
-      setIsLoading(false)
-      return
-    }
-
-    const storedUser = localStorage.getItem("upanglearn_user")
-    const storedToken = localStorage.getItem("authToken")
-    
-    console.log('Auth check on mount:', { 
-      hasUser: !!storedUser, 
-      hasToken: !!storedToken,
-      tokenPreview: storedToken ? storedToken.substring(0, 20) + '...' : null
-    })
-    
-    if (storedUser && storedToken) {
-      try {
-        const expired = isTokenExpired(storedToken)
-        console.log('Token expired:', expired)
-        
-        if (expired) {
-          console.log('Clearing expired session')
-          localStorage.removeItem("upanglearn_user")
-          localStorage.removeItem("authToken")
-          toast({
-            title: "Session Expired",
-            description: "Your session has expired. Please log in again.",
-            variant: "destructive",
-          })
-        } else {
-          // Restore user and token in apiClient
-          console.log('Restoring user session')
-          const parsedUser = JSON.parse(storedUser)
-          console.log('Restored user:', parsedUser)
-          setUser(parsedUser)
-        }
-      } catch (error) {
-        console.error('Error restoring session:', error)
-        localStorage.removeItem("upanglearn_user")
-        localStorage.removeItem("authToken")
-      }
-    } else {
-      console.log('No stored credentials found')
-    }
-    setIsLoading(false)
-  }, [toast])
-
-  const login = async (identifier: string, password: string): Promise<User> => {
-    setIsLoading(true)
-    setError(null)
-    try {
-      const resp = await authService.login({ email: identifier, password })
-      const normalized = mapBackendUser(resp.user)
-      setUser(normalized)
-      localStorage.setItem("upanglearn_user", JSON.stringify(normalized))
-      
-      toast({
-        title: "Welcome back!",
-        description: `Successfully logged in as ${normalized.name}`,
-      })
-      
-      return normalized
-    } catch (err: any) {
-      // Handle specific error messages from backend
-      const errorMessage = err.message || "Login failed. Please check your credentials."
-      const status = err.status
-      
-      setError(errorMessage)
-      
-      // Show specific toast based on error status
-      if (status === 403 && errorMessage.includes('deleted')) {
-        toast({
-          title: "Account Deleted",
-          description: "Your account has been deleted. Please contact the administrator for assistance.",
-          variant: "destructive",
-        })
-      } else if (status === 403) {
-        toast({
-          title: "Account Deactivated",
-          description: errorMessage,
-          variant: "destructive",
-        })
-      } else if (status === 401) {
-        toast({
-          title: "Invalid Credentials",
-          description: "The email or password you entered is incorrect. Please try again.",
-          variant: "destructive",
-        })
-      } else {
-        toast({
-          title: "Login Failed",
-          description: errorMessage,
-          variant: "destructive",
-        })
-      }
-      
-      throw err
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const logout = () => {
-    const userName = user?.name || "User"
-    setUser(null)
-    localStorage.removeItem("upanglearn_user")
-    localStorage.removeItem("authToken")
-    
-    toast({
-      title: "Logged Out",
-      description: `Goodbye, ${userName}! See you next time.`,
-    })
-  }
+  // Delegate all business logic to the custom hook
+  const auth = useAuthLogic()
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        isAuthenticated: !!user,
-        login,
-        logout,
-        error,
-      }}
-    >
+    <AuthContext.Provider value={auth}>
       {children}
     </AuthContext.Provider>
   )
 }
 
+/**
+ * useAuth Hook
+ * Access authentication context from any component
+ * Must be used within an AuthProvider
+ */
 export function useAuth() {
   const context = useContext(AuthContext)
   if (context === undefined) {
