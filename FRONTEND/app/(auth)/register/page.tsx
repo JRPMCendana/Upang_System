@@ -6,7 +6,7 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
       {/* Left Side - Branding */}
-      <div className="hidden md:flex md:w-1/2 bg-gradient-to-br from-accent to-accent-dark flex-col justify-between p-8 text-white">
+      <div className="hidden md:flex md:w-1/2 bg-linear-to-br from-accent to-accent-dark flex-col justify-between p-8 text-white">
         <div className="flex items-center gap-2">
           <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
             <BookOpen className="w-6 h-6" />

@@ -3,7 +3,7 @@
 import type React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BarChart3, FileText, ClipboardList, Users, Settings } from "lucide-react"
+import { BarChart3, FileText, ClipboardList, Users } from "lucide-react"
 import { BookOpen } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
@@ -66,15 +66,15 @@ const navItems: NavItem[] = [
     roles: ["admin"],
   },
   {
-    label: "Reports",
-    href: "/dashboard/reports",
-    icon: <BarChart3 className="w-5 h-5" />,
+    label: "Subject Content",
+    href: "/dashboard/subject-content",
+    icon: <FileText className="w-5 h-5" />,
     roles: ["admin"],
   },
   {
-    label: "Settings",
-    href: "/dashboard/settings",
-    icon: <Settings className="w-5 h-5" />,
+    label: "Student Submissions",
+    href: "/dashboard/student-submissions",
+    icon: <ClipboardList className="w-5 h-5" />,
     roles: ["admin"],
   },
 ]

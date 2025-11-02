@@ -176,7 +176,7 @@ export default function AssignmentsPage() {
                     <Card key={assignment.id} className="p-6 hover:shadow-lg transition">
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-start gap-4 flex-1">
-                          <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                          <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center shrink-0 mt-1">
                             <FileText className="w-6 h-6 text-accent" />
                           </div>
                           <div className="flex-1 min-w-0">
@@ -193,7 +193,7 @@ export default function AssignmentsPage() {
                             <p className="text-sm text-text-secondary line-clamp-1">{assignment.description}</p>
                           </div>
                         </div>
-                        <Button variant="ghost" size="icon" className="text-text-secondary flex-shrink-0">
+                        <Button variant="ghost" size="icon" className="text-text-secondary shrink-0">
                           <MoreVertical className="w-5 h-5" />
                         </Button>
                       </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { Bell, Search, LogOut } from "lucide-react"
+import { Search, LogOut } from "lucide-react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -32,7 +32,6 @@ export function Header() {
 
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" className="text-text-secondary">
-          <Bell className="w-5 h-5" />
         </Button>
 
         <div className="flex items-center gap-3">
