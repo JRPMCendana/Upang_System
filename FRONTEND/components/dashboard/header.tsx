@@ -5,12 +5,24 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
+import { useState } from "react"
 
 export function Header() {
   const { user, logout } = useAuth()
   const router = useRouter()
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -49,12 +61,30 @@ export function Header() {
           variant="ghost"
           size="icon"
           className="text-text-secondary hover:text-danger"
-          onClick={handleLogout}
+          onClick={() => setShowLogoutDialog(true)}
           title="Logout"
         >
           <LogOut className="w-5 h-5" />
         </Button>
       </div>
+
+      {/* Logout Confirmation Dialog */}
+      <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to log out? You will need to sign in again to access your account.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleLogout} className="bg-danger hover:bg-danger/90 text-white">
+              Logout
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </header>
   )
 }
