@@ -11,15 +11,27 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
 export default function CoursesPage() {
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
 
   useEffect(() => {
+    if (authLoading) return
     if (!isAuthenticated) {
       router.push("/login")
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, router, authLoading])
+
+  if (authLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-bg-secondary">
+        <div className="text-center">
+          <BookOpen className="w-8 h-8 animate-pulse mx-auto mb-4 text-primary" />
+          <p className="text-text-secondary">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!isAuthenticated) return null
 
