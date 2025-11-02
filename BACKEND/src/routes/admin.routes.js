@@ -14,5 +14,14 @@ router.post('/assign-teacher/:studentId', authMiddleware, authorize('administrat
 
 router.delete('/unassign-teacher/:studentId', authMiddleware, authorize('administrator'), AdminController.unassignTeacher);
 
+// Admin routes - fetch all quizzes, assignments, and submissions
+router.get('/quizzes', authMiddleware, authorize('administrator'), AdminController.getAllQuizzes);
+
+router.get('/assignments', authMiddleware, authorize('administrator'), AdminController.getAllAssignments);
+
+router.get('/assignment-submissions', authMiddleware, authorize('administrator'), AdminController.getAllAssignmentSubmissions);
+
+router.get('/quiz-submissions', authMiddleware, authorize('administrator'), AdminController.getAllQuizSubmissions);
+
 module.exports = router;
 

@@ -1,4 +1,8 @@
 const AuthService = require('../services/auth.service');
+const QuizService = require('../services/quiz.service');
+const AssignmentTaskService = require('../services/assignment-task.service');
+const SubmissionService = require('../services/submission.service');
+const QuizSubmissionService = require('../services/quiz-submission.service');
 
 class AdminController {
   static async createAccount(req, res, next) {
@@ -132,6 +136,74 @@ class AdminController {
         success: true,
         message: 'Teacher unassigned successfully',
         data: result
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getAllQuizzes(req, res, next) {
+    try {
+      const page = req.query.page || 1;
+      const limit = req.query.limit || 10;
+
+      const result = await QuizService.getAllQuizzes(page, limit);
+
+      res.status(200).json({
+        success: true,
+        data: result.quizzes,
+        pagination: result.pagination
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getAllAssignments(req, res, next) {
+    try {
+      const page = req.query.page || 1;
+      const limit = req.query.limit || 10;
+
+      const result = await AssignmentTaskService.getAllAssignments(page, limit);
+
+      res.status(200).json({
+        success: true,
+        data: result.assignments,
+        pagination: result.pagination
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getAllAssignmentSubmissions(req, res, next) {
+    try {
+      const page = req.query.page || 1;
+      const limit = req.query.limit || 10;
+
+      const result = await SubmissionService.getAllSubmissions(page, limit);
+
+      res.status(200).json({
+        success: true,
+        data: result.submissions,
+        pagination: result.pagination
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getAllQuizSubmissions(req, res, next) {
+    try {
+      const page = req.query.page || 1;
+      const limit = req.query.limit || 10;
+
+      const result = await QuizSubmissionService.getAllSubmissions(page, limit);
+
+      res.status(200).json({
+        success: true,
+        data: result.submissions,
+        pagination: result.pagination
       });
     } catch (error) {
       next(error);
