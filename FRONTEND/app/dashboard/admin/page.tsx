@@ -3,21 +3,95 @@
 import { Card } from "@/components/ui/card"
 import { Sidebar } from "@/components/dashboard/sidebar"
 import { Header } from "@/components/dashboard/header"
-import { Users, BookOpen, AlertCircle, TrendingUp, Activity, FileText, ClipboardList } from "lucide-react"
+import { Users, BookOpen, AlertCircle, TrendingUp, Activity, FileText, ClipboardList, ArrowRight, Loader2, UserCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
+import { userService, type User } from "@/services/user-service"
+import { useToast } from "@/hooks/use-toast"
 
 export default function AdminDashboard() {
   const { user, isAuthenticated } = useAuth()
   const router = useRouter()
+  const { toast } = useToast()
+
+  const [recentUsers, setRecentUsers] = useState<User[]>([])
+  const [loading, setLoading] = useState(true)
+  const [totalStudents, setTotalStudents] = useState(0)
+  const [totalTeachers, setTotalTeachers] = useState(0)
 
   useEffect(() => {
     if (!isAuthenticated || user?.role !== "admin") {
       router.push("/login")
     }
   }, [isAuthenticated, user, router])
+
+  useEffect(() => {
+    if (isAuthenticated && user?.role === "admin") {
+      fetchRecentUsers()
+      fetchUserStats()
+    }
+  }, [isAuthenticated, user])
+
+  const fetchRecentUsers = async () => {
+    try {
+      setLoading(true)
+      // Fetch first 5 users sorted by creation date (most recent)
+      const response = await userService.getUsers(1, 5)
+      setRecentUsers(response.data)
+    } catch (error) {
+      console.error("Error fetching recent users:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load recent users.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchUserStats = async () => {
+    try {
+      // Fetch student count
+      const studentsResponse = await userService.getUsers(1, 1, "student")
+      setTotalStudents(studentsResponse.pagination.totalItems)
+
+      // Fetch teacher count
+      const teachersResponse = await userService.getUsers(1, 1, "teacher")
+      setTotalTeachers(teachersResponse.pagination.totalItems)
+    } catch (error) {
+      console.error("Error fetching user stats:", error)
+    }
+  }
+
+  const getRoleBadge = (role: string) => {
+    switch (role) {
+      case "student":
+        return <Badge className="bg-primary/10 text-primary text-xs">Student</Badge>
+      case "teacher":
+        return <Badge className="bg-accent/10 text-accent text-xs">Teacher</Badge>
+      case "administrator":
+        return <Badge className="bg-foreground/10 text-foreground text-xs">Admin</Badge>
+      default:
+        return <Badge className="text-xs">Unknown</Badge>
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffTime = Math.abs(now.getTime() - date.getTime())
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    
+    if (diffDays === 0) return "Today"
+    if (diffDays === 1) return "Yesterday"
+    if (diffDays < 7) return `${diffDays} days ago`
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`
+    return `${Math.floor(diffDays / 30)} months ago`
+  }
 
   if (!isAuthenticated || user?.role !== "admin") return null
 
@@ -35,6 +109,13 @@ export default function AdminDashboard() {
                 <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
                 <p className="text-text-secondary">System overview and management</p>
               </div>
+              <Button
+                className="bg-primary hover:bg-primary-dark gap-2"
+                onClick={() => router.push("/dashboard/users")}
+              >
+                <Users className="w-5 h-5" />
+                Manage Users
+              </Button>
             </div>
 
             {/* Stats Cards */}
@@ -43,7 +124,7 @@ export default function AdminDashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-text-secondary mb-1">Total Students</p>
-                    <p className="text-2xl font-bold">980</p>
+                    <p className="text-2xl font-bold">{totalStudents}</p>
                   </div>
                   <Users className="w-10 h-10 text-primary/20" />
                 </div>
@@ -52,7 +133,7 @@ export default function AdminDashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-text-secondary mb-1">Total Teachers</p>
-                    <p className="text-2xl font-bold">145</p>
+                    <p className="text-2xl font-bold">{totalTeachers}</p>
                   </div>
                   <Users className="w-10 h-10 text-accent/20" />
                 </div>
@@ -60,43 +141,79 @@ export default function AdminDashboard() {
               <Card className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-text-secondary mb-1">Total Courses</p>
-                    <p className="text-2xl font-bold">60</p>
+                    <p className="text-sm text-text-secondary mb-1">Total Users</p>
+                    <p className="text-2xl font-bold">{totalStudents + totalTeachers}</p>
                   </div>
-                  <BookOpen className="w-10 h-10 text-warning/20" />
+                  <Activity className="w-10 h-10 text-warning/20" />
                 </div>
               </Card>
               <Card className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-text-secondary mb-1">Active Courses</p>
-                    <p className="text-2xl font-bold">42</p>
+                    <p className="text-sm text-text-secondary mb-1">Active Users</p>
+                    <p className="text-2xl font-bold">{totalStudents + totalTeachers}</p>
                   </div>
-                  <Activity className="w-10 h-10 text-success/20" />
+                  <TrendingUp className="w-10 h-10 text-primary/20" />
                 </div>
               </Card>
             </div>
 
             {/* User Management */}
             <Card className="p-6">
-              <h2 className="text-lg font-semibold mb-4">Recent Users</h2>
-              <div className="space-y-3">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="flex items-center justify-between p-4 bg-bg-secondary rounded-lg">
-                    <div>
-                      <p className="font-medium">
-                        User {i}: {["John Doe", "Jane Smith", "Mike Johnson", "Sarah Williams", "Tom Brown"][i - 1]}
-                      </p>
-                      <p className="text-sm text-text-secondary">
-                        {["student", "teacher", "student", "teacher", "admin"][i - 1]} • Joined {10 - i} days ago
-                      </p>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      Manage
-                    </Button>
-                  </div>
-                ))}
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">Recent Users</h2>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => router.push("/dashboard/users")}
+                >
+                  View All
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
               </div>
+
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : recentUsers.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-text-secondary">
+                  <Users className="w-12 h-12 mb-4 opacity-50" />
+                  <p className="text-sm">No users found</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {recentUsers.map((u) => (
+                    <div key={u._id} className="flex items-center justify-between p-4 bg-bg-secondary rounded-lg hover:bg-bg-tertiary transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <UserCircle2 className="w-6 h-6 text-primary" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-medium">{userService.getUserFullName(u)}</p>
+                            {getRoleBadge(u.role)}
+                          </div>
+                          <p className="text-sm text-text-secondary">
+                            @{u.username} • {u.email}
+                          </p>
+                          <p className="text-xs text-text-tertiary mt-0.5">
+                            Joined {formatDate(u.createdAt)}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => router.push("/dashboard/users")}
+                      >
+                        Manage
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </Card>
 
             {/* Subject Reports (placeholder) */}

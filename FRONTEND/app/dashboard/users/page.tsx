@@ -6,46 +6,97 @@ import { Header } from "@/components/dashboard/header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Users as UsersIcon, Search, Plus, Shield, Mail, MoreVertical, Pencil, Trash2, UserX } from "lucide-react"
+import { Users as UsersIcon, Search, Plus, Shield, Mail, MoreVertical, Pencil, Trash2, UserX, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+import { userService, type User } from "@/services/user-service"
+import { useToast } from "@/hooks/use-toast"
 
 export default function UsersPage() {
   const { user, isAuthenticated } = useAuth()
   const router = useRouter()
+  const { toast } = useToast()
+  
   const [searchQuery, setSearchQuery] = useState("")
-  const [roleFilter, setRoleFilter] = useState<"all" | "student" | "teacher">("all")
+  const [roleFilter, setRoleFilter] = useState<"all" | "student" | "teacher">("student") // Default to students for teachers
+  const [statusFilter, setStatusFilter] = useState<"active" | "deactivated" | "deleted" | "all">("active")
+  const [users, setUsers] = useState<User[]>([])
+  const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const limit = 10
+
+  const isAdmin = user?.role === "admin"
+  const isTeacher = user?.role === "teacher"
 
   useEffect(() => {
     if (!isAuthenticated) {
       router.push("/login")
       return
     }
-    if (user && user.role !== "admin") {
+    if (user && user.role !== "admin" && user.role !== "teacher") {
       router.push(`/dashboard/${user.role}`)
     }
   }, [isAuthenticated, router, user])
 
-  if (!isAuthenticated || (user && user.role !== "admin")) return null
+  useEffect(() => {
+    if (isAuthenticated && (user?.role === "admin" || user?.role === "teacher")) {
+      fetchUsers()
+    }
+  }, [isAuthenticated, user, currentPage, roleFilter, statusFilter])
 
-  const mockUsers = [
-    { id: 1, name: "Jane Doe", email: "jane@student.test", role: "student", status: "active" },
-    { id: 2, name: "John Smith", email: "john@student.test", role: "student", status: "inactive" },
-    { id: 3, name: "Alice Johnson", email: "alice@teacher.test", role: "teacher", status: "active" },
-    { id: 4, name: "Bob Williams", email: "bob@teacher.test", role: "teacher", status: "active" },
-    { id: 5, name: "Admin User", email: "admin@upang.test", role: "admin", status: "active" },
-  ] as const
+  const fetchUsers = async () => {
+    try {
+      setLoading(true)
+      const response = await userService.getUsers(
+        currentPage,
+        limit,
+        roleFilter === "all" ? undefined : roleFilter,
+        statusFilter === "all" ? undefined : statusFilter
+      )
+      setUsers(response.data)
+      setTotalPages(response.pagination.totalPages)
+      setTotalItems(response.pagination.totalItems)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load users. Please try again.",
+        variant: "destructive",
+      })
+      console.error("Error fetching users:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
-  const filteredUsers = mockUsers
-    // Exclude admin accounts from the listing (admins monitor students/teachers only)
-    .filter((u) => u.role === "student" || u.role === "teacher")
-    .filter((u) => {
-      const matchesRole = roleFilter === "all" || u.role === roleFilter
-      const q = searchQuery.toLowerCase()
-      const matchesQuery = u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
-      return matchesRole && matchesQuery
-    })
+  const handleStatusChange = async (userId: string, newStatus: "active" | "deactivated" | "deleted") => {
+    try {
+      await userService.updateUser(userId, { status: newStatus })
+      toast({
+        title: "Success",
+        description: `User ${newStatus === "active" ? "activated" : newStatus === "deactivated" ? "deactivated" : "deleted"} successfully.`,
+      })
+      fetchUsers()
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update user status.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  if (!isAuthenticated || (user && user.role !== "admin" && user.role !== "teacher")) return null
+
+  // Client-side search filtering
+  const filteredUsers = users.filter((u) => {
+    const q = searchQuery.toLowerCase()
+    const userName = userService.getUserFullName(u).toLowerCase()
+    const matchesQuery = userName.includes(q) || u.email.toLowerCase().includes(q) || u.username.toLowerCase().includes(q)
+    return matchesQuery
+  })
 
   const roleBadge = (role: string) => {
     switch (role) {
@@ -83,12 +134,18 @@ export default function UsersPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold mb-2">Users</h1>
-                <p className="text-text-secondary">Manage users and roles</p>
+                <h1 className="text-3xl font-bold mb-2">
+                  {isTeacher ? "Students" : "Users"}
+                </h1>
+                <p className="text-text-secondary">
+                  {isTeacher ? "View and monitor student progress" : "Manage users and roles"}
+                </p>
               </div>
-              <Button className="bg-primary hover:bg-primary-dark gap-2">
-                <Plus className="w-5 h-5" /> Add User
-              </Button>
+              {isAdmin && (
+                <Button className="bg-primary hover:bg-primary-dark gap-2">
+                  <Plus className="w-5 h-5" /> Add User
+                </Button>
+              )}
             </div>
 
             {/* Filters */}
@@ -97,74 +154,200 @@ export default function UsersPage() {
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-3 w-5 h-5 text-text-secondary" />
                   <Input
-                    placeholder="Search by name or email..."
+                    placeholder="Search by name, username or email..."
                     className="pl-10"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
-                <div className="flex gap-2">
-                  {["all", "student", "teacher"].map((r) => (
-                    <Button
-                      key={r}
-                      variant={roleFilter === (r as any) ? "default" : "outline"}
-                      size="sm"
-                      className="capitalize"
-                      onClick={() => setRoleFilter(r as any)}
-                    >
-                      {r}
-                    </Button>
-                  ))}
+                <div className="flex gap-2 flex-wrap">
+                  {isAdmin && (
+                    <div className="flex gap-2">
+                      {["all", "student", "teacher"].map((r) => (
+                        <Button
+                          key={r}
+                          variant={roleFilter === (r as any) ? "default" : "outline"}
+                          size="sm"
+                          className="capitalize"
+                          onClick={() => {
+                            setRoleFilter(r as any)
+                            setCurrentPage(1)
+                          }}
+                        >
+                          {r}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                  {isAdmin && (
+                    <div className="flex gap-2">
+                      {["active", "deactivated", "deleted"].map((s) => (
+                        <Button
+                          key={s}
+                          variant={statusFilter === (s as any) ? "default" : "outline"}
+                          size="sm"
+                          className="capitalize"
+                          onClick={() => {
+                            setStatusFilter(s as any)
+                            setCurrentPage(1)
+                          }}
+                        >
+                          {s}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </Card>
 
             {/* Users list */}
             <Card className="overflow-hidden">
-              <div className="min-w-full overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-bg-tertiary text-text-secondary">
-                    <tr>
-                      <th className="text-left px-6 py-3 font-medium">Name</th>
-                      <th className="text-left px-6 py-3 font-medium">Email</th>
-                      <th className="text-left px-6 py-3 font-medium">Role</th>
-                      <th className="text-left px-6 py-3 font-medium">Status</th>
-                      <th className="px-6 py-3" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredUsers.map((u) => (
-                      <tr key={u.id} className="border-t border-border hover:bg-bg-secondary/70">
-                        <td className="px-6 py-3 font-medium">{u.name}</td>
-                        <td className="px-6 py-3 text-text-secondary flex items-center gap-2">
-                          <Mail className="w-4 h-4" /> {u.email}
-                        </td>
-                        <td className="px-6 py-3">{roleBadge(u.role)}</td>
-                        <td className="px-6 py-3">
-                          <div className="flex items-center gap-2">
-                            {statusDot(u.status)}
-                            <span className="capitalize text-text-secondary">{u.status}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-3 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button variant="outline" size="sm" className="gap-1">
-                              <Pencil className="w-4 h-4" /> Edit
-                            </Button>
-                            <Button variant="outline" size="sm" className="gap-1">
-                              <UserX className="w-4 h-4" /> Deactivate
-                            </Button>
-                            <Button variant="ghost" size="icon" className="text-danger">
-                              <Trash2 className="w-5 h-5" />
-                            </Button>
-                          </div>
-                        </td>
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : filteredUsers.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-text-secondary">
+                  <UsersIcon className="w-12 h-12 mb-4 opacity-50" />
+                  <p className="text-lg font-medium">No users found</p>
+                  <p className="text-sm">Try adjusting your filters or search query</p>
+                </div>
+              ) : (
+                <div className="min-w-full overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-bg-tertiary text-text-secondary">
+                      <tr>
+                        <th className="text-left px-6 py-3 font-medium">Username</th>
+                        <th className="text-left px-6 py-3 font-medium">Name</th>
+                        <th className="text-left px-6 py-3 font-medium">Email</th>
+                        <th className="text-left px-6 py-3 font-medium">Role</th>
+                        <th className="text-left px-6 py-3 font-medium">Status</th>
+                        <th className="px-6 py-3" />
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {filteredUsers.map((u) => (
+                        <tr key={u._id} className="border-t border-border hover:bg-bg-secondary/70">
+                          <td className="px-6 py-3 font-medium">{u.username}</td>
+                          <td className="px-6 py-3 text-text-secondary">
+                            {userService.getUserFullName(u)}
+                          </td>
+                          <td className="px-6 py-3 text-text-secondary flex items-center gap-2">
+                            <Mail className="w-4 h-4" /> {u.email}
+                          </td>
+                          <td className="px-6 py-3">{roleBadge(u.role)}</td>
+                          <td className="px-6 py-3">
+                            <div className="flex items-center gap-2">
+                              {statusDot(u.status)}
+                              <span className="capitalize text-text-secondary">{u.status}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-3 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {isTeacher ? (
+                                <Button variant="outline" size="sm" className="gap-1">
+                                  View Profile
+                                </Button>
+                              ) : (
+                                <>
+                                  <Button variant="outline" size="sm" className="gap-1">
+                                    <Pencil className="w-4 h-4" /> Edit
+                                  </Button>
+                                  {u.status === "active" ? (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="gap-1"
+                                      onClick={() => handleStatusChange(u._id, "deactivated")}
+                                    >
+                                      <UserX className="w-4 h-4" /> Deactivate
+                                    </Button>
+                                  ) : u.status === "deactivated" ? (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="gap-1"
+                                      onClick={() => handleStatusChange(u._id, "active")}
+                                    >
+                                      <Shield className="w-4 h-4" /> Activate
+                                    </Button>
+                                  ) : null}
+                                  {u.status !== "deleted" && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="text-danger"
+                                      onClick={() => handleStatusChange(u._id, "deleted")}
+                                    >
+                                      <Trash2 className="w-5 h-5" />
+                                    </Button>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </Card>
+
+            {/* Pagination */}
+            {!loading && totalPages > 1 && (
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-text-secondary">
+                  Showing {((currentPage - 1) * limit) + 1} to {Math.min(currentPage * limit, totalItems)} of {totalItems} users
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    Previous
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum: number
+                      if (totalPages <= 5) {
+                        pageNum = i + 1
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i
+                      } else {
+                        pageNum = currentPage - 2 + i
+                      }
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          className="w-9"
+                          onClick={() => setCurrentPage(pageNum)}
+                        >
+                          {pageNum}
+                        </Button>
+                      )
+                    })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </main>
       </div>

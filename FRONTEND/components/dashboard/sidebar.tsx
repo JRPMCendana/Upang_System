@@ -60,6 +60,12 @@ const navItems: NavItem[] = [
     roles: ["student", "teacher"],
   },
   {
+    label: "Students",
+    href: "/dashboard/users",
+    icon: <Users className="w-5 h-5" />,
+    roles: ["teacher"],
+  },
+  {
     label: "Users",
     href: "/dashboard/users",
     icon: <Users className="w-5 h-5" />,
