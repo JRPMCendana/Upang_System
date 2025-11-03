@@ -130,7 +130,7 @@ export default function StudentSubmissionsPage() {
               <div>
                 <h1 className="text-3xl font-bold mb-2">Student Submissions</h1>
                 <p className="text-text-secondary">
-                  Review and manage submissions • {totalItems} total
+                  Review and manage submissions
                 </p>
               </div>
             </div>
@@ -138,19 +138,39 @@ export default function StudentSubmissionsPage() {
             {/* Summary Stats */}
             <div className="grid grid-cols-4 gap-4">
               <Card className="p-4">
-                <p className="text-sm text-text-secondary mb-1">Total Submissions</p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm text-text-secondary">Total Submissions</p>
+                  <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <FileText className="w-4 h-4 text-primary" />
+                  </div>
+                </div>
                 <p className="text-2xl font-bold">{breakdown.total}</p>
               </Card>
               <Card className="p-4">
-                <p className="text-sm text-text-secondary mb-1">Assignments</p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm text-text-secondary">Assignments</p>
+                  <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center">
+                    <FileText className="w-4 h-4 text-blue-500" />
+                  </div>
+                </div>
                 <p className="text-2xl font-bold">{breakdown.totalAssignments}</p>
               </Card>
               <Card className="p-4">
-                <p className="text-sm text-text-secondary mb-1">Quizzes</p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm text-text-secondary">Quizzes</p>
+                  <div className="w-8 h-8 bg-purple-500/10 rounded-lg flex items-center justify-center">
+                    <FileText className="w-4 h-4 text-purple-500" />
+                  </div>
+                </div>
                 <p className="text-2xl font-bold">{breakdown.totalQuizzes}</p>
               </Card>
               <Card className="p-4">
-                <p className="text-sm text-text-secondary mb-1">Exams</p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm text-text-secondary">Exams</p>
+                  <div className="w-8 h-8 bg-red-500/10 rounded-lg flex items-center justify-center">
+                    <FileText className="w-4 h-4 text-red-500" />
+                  </div>
+                </div>
                 <p className="text-2xl font-bold">{breakdown.totalExams || 0}</p>
               </Card>
             </div>

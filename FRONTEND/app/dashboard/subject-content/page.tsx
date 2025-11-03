@@ -27,6 +27,8 @@ export default function SubjectContentPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [typeFilter, setTypeFilter] = useState("all")
   const [teacherFilter, setTeacherFilter] = useState("all")
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
 
   const {
     combinedActivities,
@@ -58,6 +60,11 @@ export default function SubjectContentPage() {
     }
   }, [isAuthenticated, user, teacherFilter, fetchAll])
 
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, typeFilter, teacherFilter])
+
   if (authLoading || loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-bg-secondary">
@@ -84,6 +91,14 @@ export default function SubjectContentPage() {
     return matchesType && matchesSearch
   })
 
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredActivities.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedActivities = filteredActivities.slice(startIndex, endIndex)
+  const hasPrevPage = currentPage > 1
+  const hasNextPage = currentPage < totalPages
+
   const getActivityIcon = (type: string) => {
     if (type === "quiz") return "🧠"
     if (type === "exam") return "�"
@@ -109,7 +124,7 @@ export default function SubjectContentPage() {
               <div>
                 <h1 className="text-3xl font-bold mb-2">Teacher's Activities</h1>
                 <p className="text-text-secondary">
-                  Monitor all assignments, quizzes, and exams created by teachers • {filteredActivities.length} total
+                  Monitor all assignments, quizzes, and exams created by teachers
                 </p>
               </div>
             </div>
@@ -117,19 +132,39 @@ export default function SubjectContentPage() {
             {/* Summary Stats */}
             <div className="grid grid-cols-4 gap-4">
               <Card className="p-4">
-                <p className="text-sm text-text-secondary mb-1">Total Activities</p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm text-text-secondary">Total Activities</p>
+                  <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <FileText className="w-4 h-4 text-primary" />
+                  </div>
+                </div>
                 <p className="text-2xl font-bold">{assignmentsTotal + quizzesTotal + examsTotal}</p>
               </Card>
               <Card className="p-4">
-                <p className="text-sm text-text-secondary mb-1">Assignments</p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm text-text-secondary">Assignments</p>
+                  <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center">
+                    <FileText className="w-4 h-4 text-blue-500" />
+                  </div>
+                </div>
                 <p className="text-2xl font-bold">{assignmentsTotal}</p>
               </Card>
               <Card className="p-4">
-                <p className="text-sm text-text-secondary mb-1">Quizzes</p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm text-text-secondary">Quizzes</p>
+                  <div className="w-8 h-8 bg-purple-500/10 rounded-lg flex items-center justify-center">
+                    <FileText className="w-4 h-4 text-purple-500" />
+                  </div>
+                </div>
                 <p className="text-2xl font-bold">{quizzesTotal}</p>
               </Card>
               <Card className="p-4">
-                <p className="text-sm text-text-secondary mb-1">Exams</p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm text-text-secondary">Exams</p>
+                  <div className="w-8 h-8 bg-red-500/10 rounded-lg flex items-center justify-center">
+                    <FileText className="w-4 h-4 text-red-500" />
+                  </div>
+                </div>
                 <p className="text-2xl font-bold">{examsTotal}</p>
               </Card>
             </div>
@@ -195,7 +230,7 @@ export default function SubjectContentPage() {
               )}
 
               {!loading &&
-                filteredActivities.map((activity) => (
+                paginatedActivities.map((activity) => (
                   <Card key={activity._id} className="p-6 hover:shadow-lg transition">
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-4 flex-1">
@@ -250,6 +285,33 @@ export default function SubjectContentPage() {
                   </Card>
                 ))}
             </div>
+
+            {/* Pagination */}
+            {!loading && paginatedActivities.length > 0 && (
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-text-secondary">
+                  Page {currentPage} of {totalPages} • Showing {paginatedActivities.length} of {filteredActivities.length} activities
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(currentPage - 1)}
+                    disabled={!hasPrevPage}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                    disabled={!hasNextPage}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </main>
       </div>
