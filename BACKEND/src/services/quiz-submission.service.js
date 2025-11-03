@@ -89,6 +89,7 @@ class QuizSubmissionService {
         submission.submittedDocumentType = file.mimetype;
         submission.isSubmitted = true;
         submission.submittedAt = new Date();
+        submission.status = 'submitted';
         await submission.save();
       } else {
         // Create new submission
@@ -99,7 +100,8 @@ class QuizSubmissionService {
           submittedDocumentName: file.originalname,
           submittedDocumentType: file.mimetype,
           isSubmitted: true,
-          submittedAt: new Date()
+          submittedAt: new Date(),
+          status: 'submitted'
         });
       }
 
@@ -396,13 +398,6 @@ class QuizSubmissionService {
 
   static async gradeSubmission(submissionId, teacherId, grade, feedback) {
     try {
-      if (grade !== null && (grade < 0 || grade > 100)) {
-        throw {
-          status: 400,
-          message: 'Grade must be between 0 and 100'
-        };
-      }
-
       const submission = await QuizSubmission.findById(submissionId)
         .populate('quiz');
 
@@ -410,6 +405,17 @@ class QuizSubmissionService {
         throw {
           status: 404,
           message: 'Submission not found'
+        };
+      }
+
+      // Get totalPoints from quiz
+      const totalPoints = submission.quiz.totalPoints || 100;
+
+      // Validate grade against quiz's totalPoints
+      if (grade !== null && (grade < 0 || grade > totalPoints)) {
+        throw {
+          status: 400,
+          message: `Grade must be between 0 and ${totalPoints}`
         };
       }
 
@@ -428,10 +434,10 @@ class QuizSubmissionService {
           message: 'Cannot grade submission. Quiz has not been submitted yet.'
         };
       }
-
       submission.grade = grade;
       submission.feedback = feedback || null;
       submission.gradedAt = new Date();
+      submission.status = 'graded';
       await submission.save();
 
       const populatedSubmission = await QuizSubmission.findById(submissionId)

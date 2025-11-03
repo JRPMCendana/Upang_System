@@ -17,9 +17,28 @@ export interface Exam {
   document?: string | null
   documentName?: string | null
   documentType?: string | null
-  status?: 'active' | 'inactive'
   createdAt: string
   updatedAt?: string
+  // Aggregated fields from submissions (for student view)
+  submission?: {
+    _id: string
+    isSubmitted: boolean
+    submittedAt?: string | null
+    grade?: number | null
+    feedback?: string | null
+    gradedAt?: string | null
+    submittedDocument?: string | null
+    submittedDocumentName?: string | null
+    status?: "pending" | "submitted" | "graded" | "due"
+  } | null
+  submissionStatus?: "pending" | "submitted" | "graded" | "due" // Status from submission
+  // Submission statistics (for teacher view)
+  submissionStats?: {
+    total: number
+    submitted: number
+    graded: number
+    pending: number
+  }
 }
 
 export interface ExamSubmission {
@@ -40,6 +59,7 @@ export interface ExamSubmission {
   submittedDocument?: string | null
   submittedDocumentName?: string | null
   submittedDocumentType?: string | null
+  status: "pending" | "submitted" | "graded" | "due"
   createdAt?: string
   updatedAt?: string
 }

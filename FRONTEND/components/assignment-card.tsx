@@ -10,7 +10,7 @@ interface AssignmentCardProps {
   title: string
   course: string
   dueDate: string
-  status: "pending" | "submitted" | "overdue"
+  status: "pending" | "submitted" | "graded" | "due"
   submissions?: number
   totalStudents?: number
   description: string
@@ -32,11 +32,13 @@ export function AssignmentCard({
   const getStatusStyles = (status: string) => {
     switch (status) {
       case "pending":
-        return { bg: "bg-warning/10", text: "text-warning", icon: Clock, label: "Pending" }
+        return { bg: "bg-yellow-500/10", text: "text-yellow-500", icon: Clock, label: "Pending" }
       case "submitted":
-        return { bg: "bg-accent/10", text: "text-accent", icon: CheckCircle, label: "Submitted" }
-      case "overdue":
-        return { bg: "bg-danger/10", text: "text-danger", icon: AlertCircle, label: "Overdue" }
+        return { bg: "bg-blue-500/10", text: "text-blue-500", icon: CheckCircle, label: "Submitted" }
+      case "graded":
+        return { bg: "bg-green-500/10", text: "text-green-500", icon: CheckCircle, label: "Graded" }
+      case "due":
+        return { bg: "bg-red-500/10", text: "text-red-500", icon: AlertCircle, label: "Overdue" }
       default:
         return { bg: "bg-gray-100", text: "text-gray-600", icon: FileText, label: "Unknown" }
     }

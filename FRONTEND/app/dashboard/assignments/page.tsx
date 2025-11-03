@@ -149,8 +149,9 @@ export default function AssignmentsPage() {
         matchesStatus = isOverdue
       }
     } else if (!matchesStatus && user?.role === "student") {
-      // Student filters: based on their submission status
-      matchesStatus = assignment.status === filterStatus
+      // Student filters: based on their submission status (from submissionStatus field)
+      const status = assignment.submissionStatus || assignment.status || 'pending'
+      matchesStatus = status === filterStatus
     }
     
     return matchesSearch && matchesStatus
@@ -216,7 +217,7 @@ export default function AssignmentsPage() {
                     ))
                   ) : (
                     // Students: Filter by submission status
-                    ["all", "pending", "submitted", "graded", "late"].map((status) => (
+                    ["all", "pending", "submitted", "graded", "due"].map((status) => (
                       <Button
                         key={status}
                         variant={filterStatus === status ? "default" : "outline"}
@@ -224,7 +225,7 @@ export default function AssignmentsPage() {
                         onClick={() => setFilterStatus(status)}
                         className="capitalize"
                       >
-                        {status}
+                        {status === "due" ? "overdue" : status}
                       </Button>
                     ))
                   )}
@@ -242,18 +243,30 @@ export default function AssignmentsPage() {
               ) : (
                 filteredAssignments.map((assignment) => {
                   // Calculate status for display
-                  // For students: backend provides status (pending, submitted, graded, late)
-                  // For teachers: always calculate based on due date since backend doesn't provide per-teacher status
+                  // For students: backend provides submissionStatus based on their submission
+                  // For teachers: calculate based on submission stats
                   let displayStatus: string
                   
                   if (user?.role === "teacher") {
-                    // Teacher view: calculate status based on due date
-                    const now = new Date()
-                    const dueDate = new Date(assignment.dueDate)
-                    displayStatus = now > dueDate ? "late" : "pending"
+                    // Teacher view: calculate status based on submission stats
+                    const stats = assignment.submissionStats
+                    if (stats) {
+                      if (stats.total > 0 && stats.submitted === stats.total) {
+                        // All students submitted
+                        displayStatus = stats.graded === stats.total ? "graded" : "submitted"
+                      } else if (stats.submitted > 0) {
+                        // Some students submitted
+                        displayStatus = "submitted"
+                      } else {
+                        // No submissions yet
+                        displayStatus = "pending"
+                      }
+                    } else {
+                      displayStatus = "pending"
+                    }
                   } else {
-                    // Student view: use backend-provided status
-                    displayStatus = assignment.status || "pending"
+                    // Student view: use backend-provided submissionStatus (from submission)
+                    displayStatus = assignment.submissionStatus || assignment.status || "pending"
                   }
                   
                   const statusColor = getStatusColor(displayStatus)
@@ -355,37 +368,43 @@ export default function AssignmentsPage() {
                               <div className="ml-auto flex items-center gap-2 text-sm">
                                 <span className="text-text-secondary">Grade:</span>
                                 <span className="font-semibold text-accent">
-                                  {assignment.submission.grade}/100
+                                  {assignment.submission.grade}/{assignment.maxGrade || 100}
                                 </span>
                               </div>
                             )}
                             
                             {/* Show submit/unsubmit button only if not graded */}
-                            {(assignment.submission?.grade === null || assignment.submission?.grade === undefined) && (
-                              <Button
-                                className={assignment.submission?.grade !== null && assignment.submission?.grade !== undefined ? "" : "ml-auto"}
-                                variant={
-                                  assignment.submission?.isSubmitted
-                                    ? "outline"
-                                    : "default"
-                                }
-                                size="sm"
-                                disabled={assignment.status === "late"}
-                                onClick={() => {
-                                  if (assignment.submission?.isSubmitted) {
-                                    handleUnsubmitAssignment(assignment._id)
-                                  } else {
-                                    handleOpenSubmitDialog(assignment)
+                            {(assignment.submission?.grade === null || assignment.submission?.grade === undefined) && (() => {
+                              // Check if assignment is past due
+                              const isPastDue = new Date() > new Date(assignment.dueDate)
+                              const isOverdue = displayStatus === 'due' || displayStatus === 'overdue'
+                              
+                              return (
+                                <Button
+                                  className={assignment.submission?.grade !== null && assignment.submission?.grade !== undefined ? "" : "ml-auto"}
+                                  variant={
+                                    assignment.submission?.isSubmitted
+                                      ? "outline"
+                                      : "default"
                                   }
-                                }}
-                              >
-                                {assignment.submission?.isSubmitted
-                                  ? "Unsubmit"
-                                  : assignment.status === "late"
-                                  ? "Past Due"
-                                  : "Submit"}
-                              </Button>
-                            )}
+                                  size="sm"
+                                  disabled={isPastDue && !assignment.submission?.isSubmitted}
+                                  onClick={() => {
+                                    if (assignment.submission?.isSubmitted) {
+                                      handleUnsubmitAssignment(assignment._id)
+                                    } else {
+                                      handleOpenSubmitDialog(assignment)
+                                    }
+                                  }}
+                                >
+                                  {assignment.submission?.isSubmitted
+                                    ? "Unsubmit"
+                                    : (isPastDue && !assignment.submission?.isSubmitted)
+                                    ? "Past Due"
+                                    : "Submit"}
+                                </Button>
+                              )
+                            })()}
                           </>
                         )}
                       </div>

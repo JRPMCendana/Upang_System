@@ -82,6 +82,18 @@ class ExamSubmissionService {
       if (!submission) {
         throw { status: 404, message: 'Submission not found' };
       }
+
+      // Get totalPoints from exam
+      const totalPoints = submission.exam.totalPoints || 100;
+
+      // Validate grade against exam's totalPoints
+      if (grade !== null && (grade < 0 || grade > totalPoints)) {
+        throw {
+          status: 400,
+          message: `Grade must be between 0 and ${totalPoints}`
+        };
+      }
+
       if (submission.exam.assignedBy.toString() !== teacherId.toString()) {
         throw { status: 403, message: 'Access denied' };
       }

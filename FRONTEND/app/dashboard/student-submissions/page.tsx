@@ -83,6 +83,21 @@ export default function StudentSubmissionsPage() {
     return "bg-red-500/10 text-red-500"
   }
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "graded":
+        return { bg: "bg-green-500/10", text: "text-green-500", label: "Graded" }
+      case "submitted":
+        return { bg: "bg-blue-500/10", text: "text-blue-500", label: "Submitted" }
+      case "pending":
+        return { bg: "bg-yellow-500/10", text: "text-yellow-500", label: "Pending" }
+      case "due":
+        return { bg: "bg-red-500/10", text: "text-red-500", label: "Overdue" }
+      default:
+        return { bg: "bg-gray-500/10", text: "text-gray-500", label: "Unknown" }
+    }
+  }
+
   const getTypeIcon = (type: string) => {
     if (type === "quiz") return "🧠"
     if (type === "exam") return "📝"
@@ -169,8 +184,10 @@ export default function StudentSubmissionsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="graded">Graded</SelectItem>
                     <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="submitted">Submitted</SelectItem>
+                    <SelectItem value="graded">Graded</SelectItem>
+                    <SelectItem value="due">Overdue</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -197,49 +214,55 @@ export default function StudentSubmissionsPage() {
                 </Card>
               )}
 
-              {!loading && submissions.map((s) => (
-                <Card key={s._id} className="p-6 hover:shadow-lg transition">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center shrink-0 text-2xl">
-                        {getTypeIcon(s.type)}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-lg font-semibold">{s.activity}</h3>
-                          <Badge variant="outline" className="text-xs">
-                            {s.type === "quiz" ? "Quiz" : "Assignment"}
-                          </Badge>
+              {!loading && submissions.map((s) => {
+                const statusBadge = getStatusBadge(s.status || "pending")
+                return (
+                  <Card key={s._id} className="p-6 hover:shadow-lg transition">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-4 flex-1">
+                        <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center shrink-0 text-2xl">
+                          {getTypeIcon(s.type)}
                         </div>
-                        {s.description && (
-                          <p className="text-sm text-text-secondary mb-2 line-clamp-1">
-                            {s.description}
-                          </p>
-                        )}
-                        <div className="flex flex-wrap items-center gap-4 text-sm text-text-secondary">
-                          <span className="font-medium">{s.student}</span>
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4" />
-                            {formatRelativeTime(s.submittedAt)}
-                          </span>
-                          {s.grade !== null ? (
-                            <Badge className={getScoreColor(s.grade, s.maxGrade)}>
-                              Score: {s.grade}/{s.maxGrade}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <h3 className="text-lg font-semibold">{s.activity}</h3>
+                            <Badge variant="outline" className="text-xs">
+                              {s.type === "quiz" ? "Quiz" : s.type === "exam" ? "Exam" : "Assignment"}
                             </Badge>
-                          ) : (
-                            <Badge className="bg-gray-500/10 text-gray-500">
-                              Pending Grade
+                            <Badge className={`${statusBadge.bg} ${statusBadge.text}`}>
+                              {statusBadge.label}
                             </Badge>
+                          </div>
+                          {s.description && (
+                            <p className="text-sm text-text-secondary mb-2 line-clamp-1">
+                              {s.description}
+                            </p>
                           )}
-                          {s.submittedDocumentName && (
-                            <span className="text-xs">📎 {s.submittedDocumentName}</span>
-                          )}
+                          <div className="flex flex-wrap items-center gap-4 text-sm text-text-secondary">
+                            <span className="font-medium">{s.student}</span>
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-4 h-4" />
+                              {formatRelativeTime(s.submittedAt)}
+                            </span>
+                            {s.grade !== null ? (
+                              <Badge className={getScoreColor(s.grade, s.maxGrade)}>
+                                Score: {s.grade}/{s.maxGrade}
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-gray-500/10 text-gray-500">
+                                Not Graded
+                              </Badge>
+                            )}
+                            {s.submittedDocumentName && (
+                              <span className="text-xs">📎 {s.submittedDocumentName}</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                )
+              })}
             </div>
 
             {/* Pagination */}

@@ -88,6 +88,7 @@ class SubmissionService {
         submission.submittedDocumentType = file.mimetype;
         submission.isSubmitted = true;
         submission.submittedAt = new Date();
+        submission.status = 'submitted';
         await submission.save();
       } else {
         // Create new submission
@@ -98,7 +99,8 @@ class SubmissionService {
           submittedDocumentName: file.originalname,
           submittedDocumentType: file.mimetype,
           isSubmitted: true,
-          submittedAt: new Date()
+          submittedAt: new Date(),
+          status: 'submitted'
         });
       }
 
@@ -180,6 +182,7 @@ class SubmissionService {
       submission.submittedDocumentType = null;
       submission.isSubmitted = false;
       submission.submittedAt = null;
+      submission.status = 'pending';
       await submission.save();
 
       return submission;
@@ -388,13 +391,6 @@ class SubmissionService {
 
   static async gradeSubmission(submissionId, teacherId, grade, feedback) {
     try {
-      if (grade !== null && (grade < 0 || grade > 100)) {
-        throw {
-          status: 400,
-          message: 'Grade must be between 0 and 100'
-        };
-      }
-
       const submission = await AssignmentSubmission.findById(submissionId)
         .populate('assignment');
 
@@ -402,6 +398,17 @@ class SubmissionService {
         throw {
           status: 404,
           message: 'Submission not found'
+        };
+      }
+
+      // Get maxGrade from assignment
+      const maxGrade = submission.assignment.maxGrade || 100;
+
+      // Validate grade against assignment's maxGrade
+      if (grade !== null && (grade < 0 || grade > maxGrade)) {
+        throw {
+          status: 400,
+          message: `Grade must be between 0 and ${maxGrade}`
         };
       }
 
@@ -424,6 +431,7 @@ class SubmissionService {
       submission.grade = grade;
       submission.feedback = feedback || null;
       submission.gradedAt = new Date();
+      submission.status = 'graded';
       await submission.save();
 
       const populatedSubmission = await AssignmentSubmission.findById(submissionId)

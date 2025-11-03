@@ -126,30 +126,74 @@ export default function ExamsPage() {
                         (e.description || "").toLowerCase().includes(q)
                       )
                     })
-                    .map((exam) => (
-                    <Card key={exam._id} className="p-6 mb-4">
-                      {/* Header */}
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center">
-                            <ClipboardList className="w-5 h-5 text-primary" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="text-lg font-semibold">{exam.title}</h3>
-                              <span className="text-xs text-text-secondary">Active</span>
-                              {submissionByExamId[exam._id] && (
-                                <Badge className="bg-green-500/10 text-green-600 flex items-center gap-1">
-                                  <CheckCircle className="w-3 h-3" /> Submitted
-                                </Badge>
-                              )}
+                    .map((exam) => {
+                      // Calculate status for display (submission-based like assignments/quizzes)
+                      let displayStatus: string
+                      
+                      if (isTeacher) {
+                        // Teacher view: calculate status based on submission stats
+                        const stats = exam.submissionStats
+                        if (stats) {
+                          if (stats.total > 0 && stats.submitted === stats.total) {
+                            // All students submitted
+                            displayStatus = stats.graded === stats.total ? "graded" : "submitted"
+                          } else if (stats.submitted > 0) {
+                            // Some students submitted
+                            displayStatus = "submitted"
+                          } else {
+                            // No submissions yet
+                            displayStatus = "pending"
+                          }
+                        } else {
+                          displayStatus = "pending"
+                        }
+                      } else {
+                        // Student view: use submission status
+                        const hasSubmission = submissionByExamId[exam._id]
+                        const isGraded = exam.submission?.grade !== null && exam.submission?.grade !== undefined
+                        displayStatus = exam.submissionStatus || (isGraded ? "graded" : hasSubmission ? "submitted" : "pending")
+                      }
+
+                      // Status badge colors based on submission status
+                      const getStatusBadge = (status: string) => {
+                        switch (status) {
+                          case 'graded':
+                            return { bg: 'bg-green-500/10', text: 'text-green-600', label: 'Graded' }
+                          case 'submitted':
+                            return { bg: 'bg-blue-500/10', text: 'text-blue-600', label: 'Submitted' }
+                          case 'due':
+                          case 'overdue':
+                            return { bg: 'bg-red-500/10', text: 'text-red-600', label: 'Overdue' }
+                          case 'pending':
+                          default:
+                            return { bg: 'bg-yellow-500/10', text: 'text-yellow-600', label: 'Pending' }
+                        }
+                      }
+
+                      const statusBadge = getStatusBadge(displayStatus)
+                      const isGraded = exam.submission?.grade !== null && exam.submission?.grade !== undefined
+
+                      return (
+                        <Card key={exam._id} className="p-6 mb-4">
+                          {/* Header */}
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-start gap-3">
+                              <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center">
+                                <ClipboardList className="w-5 h-5 text-primary" />
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <h3 className="text-lg font-semibold">{exam.title}</h3>
+                                  <Badge className={`${statusBadge.bg} ${statusBadge.text}`}>
+                                    {statusBadge.label}
+                                  </Badge>
+                                </div>
+                                {exam.description && (
+                                  <p className="text-sm text-text-secondary mt-1">{exam.description}</p>
+                                )}
+                              </div>
                             </div>
-                            {exam.description && (
-                              <p className="text-sm text-text-secondary mt-1">{exam.description}</p>
-                            )}
                           </div>
-                        </div>
-                      </div>
 
                       {/* Meta grid with separators like quizzes */}
                       <div className="grid grid-cols-1 md:grid-cols-5 gap-6 py-4 border-y border-border mt-2">
@@ -191,33 +235,71 @@ export default function ExamsPage() {
                       </div>
 
                       {/* Bottom actions */}
-                      <div className="mt-6 flex items-center justify-between">
-                        {/* Left-side action (student submitted) */}
-                        <div>
-                          {isStudent && submissionByExamId[exam._id] && (
-                            <Button variant="outline" size="sm" className="gap-1" onClick={() => { const f = submissionByExamId[exam._id]; setViewerFileId(f.fileId); setViewerFileName(f.fileName || "Submitted file"); setViewerFileType(f.fileType); setViewerOpen(true); }}>
-                              <FileImage className="w-4 h-4" /> View Screenshot
-                            </Button>
-                          )}
-                        </div>
+                      <div className="mt-6 flex items-center gap-4 flex-wrap text-sm text-text-secondary">
+                        {/* Show submission stats for teachers */}
+                        {isTeacher && exam.submissionStats && (
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-1">
+                              <CheckCircle className="w-4 h-4 text-green-500" />
+                              <span>{exam.submissionStats.submitted}/{exam.submissionStats.total} submitted</span>
+                            </div>
+                            {exam.submissionStats.graded > 0 && (
+                              <div className="flex items-center gap-1">
+                                <span className="text-accent">{exam.submissionStats.graded} graded</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Student: View screenshot button */}
+                        {isStudent && submissionByExamId[exam._id] && (
+                          <Button variant="outline" size="sm" className="gap-1" onClick={() => { const f = submissionByExamId[exam._id]; setViewerFileId(f.fileId); setViewerFileName(f.fileName || "Submitted file"); setViewerFileType(f.fileType); setViewerOpen(true); }}>
+                            <FileImage className="w-4 h-4" /> View Screenshot
+                          </Button>
+                        )}
 
                         {/* Right-side action */}
-                        <div>
-                          {isTeacher ? (
-                            <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/exams/${exam._id}/submissions`)}>
-                              View Submissions
-                            </Button>
-                          ) : submissionByExamId[exam._id] ? (
-                            <Button variant="secondary" size="sm" onClick={async () => { await examService.unsubmitExam(exam._id); setSubmissionByExamId((prev) => { const n = { ...prev }; delete n[exam._id]; return n; }); }}>
-                              Unsubmit
-                            </Button>
-                          ) : (
-                            <StudentInlineSubmit examId={exam._id} onOpenDialog={(id) => { setSelectedExamId(id); setSelectedExamTitle(exam.title); setSubmitDialogOpen(true); }} />
-                          )}
-                        </div>
+                        {isTeacher ? (
+                          <Button className="ml-auto" variant="outline" size="sm" onClick={() => router.push(`/dashboard/exams/${exam._id}/submissions`)}>
+                            View Submissions
+                            {exam.submissionStats && (
+                              <Badge className="ml-2" variant="secondary">
+                                {exam.submissionStats.submitted}/{exam.submissionStats.total}
+                              </Badge>
+                            )}
+                          </Button>
+                        ) : (
+                          <>
+                            {/* Show grade if graded */}
+                            {isGraded && exam.submission?.grade !== undefined && (
+                              <div className="ml-auto flex items-center gap-2 text-sm">
+                                <span className="text-text-secondary">Grade:</span>
+                                <span className="font-semibold text-accent">
+                                  {exam.submission.grade}/{exam.totalPoints || 100}
+                                </span>
+                              </div>
+                            )}
+                            
+                            {/* Show submit/unsubmit button only if not graded */}
+                            {!isGraded && (
+                              <>
+                                {submissionByExamId[exam._id] ? (
+                                  <Button className={!isGraded ? "ml-auto" : ""} variant="outline" size="sm" onClick={async () => { await examService.unsubmitExam(exam._id); setSubmissionByExamId((prev) => { const n = { ...prev }; delete n[exam._id]; return n; }); }}>
+                                    Unsubmit
+                                  </Button>
+                                ) : (
+                                  <div className="ml-auto">
+                                    <StudentInlineSubmit examId={exam._id} onOpenDialog={(id) => { setSelectedExamId(id); setSelectedExamTitle(exam.title); setSubmitDialogOpen(true); }} />
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </>
+                        )}
                       </div>
                     </Card>
-                  ))}
+                  )
+                })}
                 </div>
               )}
             </div>

@@ -126,10 +126,41 @@ class QuizService {
         Quiz.countDocuments({ assignedBy: teacherId })
       ]);
 
+      // Add submission statistics for each quiz
+      const QuizSubmission = require('../models/QuizSubmission.model');
+      const quizzesWithStats = await Promise.all(
+        quizzes.map(async (quiz) => {
+          const quizObj = quiz.toObject();
+          const totalStudents = quiz.assignedTo.length;
+          
+          // Get submission counts
+          const [submittedCount, gradedCount] = await Promise.all([
+            QuizSubmission.countDocuments({
+              quiz: quiz._id,
+              isSubmitted: true
+            }),
+            QuizSubmission.countDocuments({
+              quiz: quiz._id,
+              grade: { $ne: null }
+            })
+          ]);
+
+          return {
+            ...quizObj,
+            submissionStats: {
+              total: totalStudents,
+              submitted: submittedCount,
+              graded: gradedCount,
+              pending: totalStudents - submittedCount
+            }
+          };
+        })
+      );
+
       const totalPages = Math.ceil(total / limitNum);
 
       return {
-        quizzes,
+        quizzes: quizzesWithStats,
         pagination: {
           currentPage: pageNum,
           limit: limitNum,
@@ -224,9 +255,29 @@ class QuizService {
                     feedback: { $arrayElemAt: ['$submissions.feedback', 0] },
                     gradedAt: { $arrayElemAt: ['$submissions.gradedAt', 0] },
                     submittedDocument: { $arrayElemAt: ['$submissions.submittedDocument', 0] },
-                    submittedDocumentName: { $arrayElemAt: ['$submissions.submittedDocumentName', 0] }
+                    submittedDocumentName: { $arrayElemAt: ['$submissions.submittedDocumentName', 0] },
+                    status: { $arrayElemAt: ['$submissions.status', 0] }
                   },
                   else: null
+                }
+              },
+              // Calculate status based on submission
+              submissionStatus: {
+                $cond: {
+                  if: { $gt: [{ $size: '$submissions' }, 0] },
+                  then: {
+                    $ifNull: [
+                      { $arrayElemAt: ['$submissions.status', 0] },
+                      'pending'
+                    ]
+                  },
+                  else: {
+                    $cond: {
+                      if: { $and: ['$dueDate', { $lt: ['$dueDate', new Date()] }] },
+                      then: 'due',
+                      else: 'pending'
+                    }
+                  }
                 }
               }
             }

@@ -18,7 +18,8 @@ export interface Assignment {
   instructions?: string
   dueDate: string
   maxGrade?: number
-  status: "pending" | "submitted" | "graded" | "late" // Updated to match backend
+  status?: "pending" | "submitted" | "graded" | "due" // Optional - deprecated, use submissionStatus
+  submissionStatus?: "pending" | "submitted" | "graded" | "due" // Status from submission
   attachments?: string[]
   submissionType: "file" | "text" | "link"
   allowLateSubmission?: boolean
@@ -41,6 +42,7 @@ export interface Assignment {
     gradedAt?: string | null
     submittedDocument?: string
     submittedDocumentName?: string
+    status?: "pending" | "submitted" | "graded" | "due"
   } | null
   submissionStats?: {
     total: number

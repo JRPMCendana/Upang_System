@@ -180,16 +180,55 @@ export default function QuizzesPage() {
                 </div>
               ) : (
                 filteredQuizzes.map((quiz) => {
-                  const statusBadge = quiz.status === 'active' 
-                    ? { bg: 'bg-success/10', text: 'text-success', label: 'Active' }
-                    : { bg: 'bg-text-secondary/10', text: 'text-text-secondary', label: 'Inactive' }
-                  
                   const hasDocument = quiz.document && quiz.documentName
                   const hasSubmittedDocument = quiz.submission?.submittedDocument && quiz.submission?.submittedDocumentName
                   const createdDate = quiz.createdAt ? format(new Date(quiz.createdAt), 'MMM dd, yyyy') : 'N/A'
                   const dueDate = quiz.dueDate ? format(new Date(quiz.dueDate), 'MMM dd, yyyy hh:mm a') : null
                   const isSubmitted = quiz.submission?.isSubmitted || false
                   const isGraded = quiz.submission?.grade !== null && quiz.submission?.grade !== undefined
+
+                  // Calculate status for display (submission-based like assignments/exams)
+                  let displayStatus: string
+                  
+                  if (user?.role === "teacher") {
+                    // Teacher view: calculate status based on submission stats
+                    const stats = quiz.submissionStats
+                    if (stats) {
+                      if (stats.total > 0 && stats.submitted === stats.total) {
+                        // All students submitted
+                        displayStatus = stats.graded === stats.total ? "graded" : "submitted"
+                      } else if (stats.submitted > 0) {
+                        // Some students submitted
+                        displayStatus = "submitted"
+                      } else {
+                        // No submissions yet
+                        displayStatus = "pending"
+                      }
+                    } else {
+                      displayStatus = "pending"
+                    }
+                  } else {
+                    // Student view: use submission status
+                    displayStatus = quiz.submissionStatus || (isGraded ? "graded" : isSubmitted ? "submitted" : "pending")
+                  }
+
+                  // Status badge colors based on submission status
+                  const getStatusBadge = (status: string) => {
+                    switch (status) {
+                      case 'graded':
+                        return { bg: 'bg-green-500/10', text: 'text-green-600', label: 'Graded' }
+                      case 'submitted':
+                        return { bg: 'bg-blue-500/10', text: 'text-blue-600', label: 'Submitted' }
+                      case 'due':
+                      case 'overdue':
+                        return { bg: 'bg-red-500/10', text: 'text-red-600', label: 'Overdue' }
+                      case 'pending':
+                      default:
+                        return { bg: 'bg-yellow-500/10', text: 'text-yellow-600', label: 'Pending' }
+                    }
+                  }
+
+                  const statusBadge = getStatusBadge(displayStatus)
 
                   return (
                     <Card key={quiz._id} className="p-6 hover:shadow-lg transition">
@@ -204,17 +243,6 @@ export default function QuizzesPage() {
                               <Badge className={`${statusBadge.bg} ${statusBadge.text}`}>
                                 {statusBadge.label}
                               </Badge>
-                              {isSubmitted && (
-                                <Badge className="bg-green-500/10 text-green-600">
-                                  <CheckCircle className="w-3 h-3 mr-1" />
-                                  Submitted
-                                </Badge>
-                              )}
-                              {isGraded && (
-                                <Badge className="bg-blue-500/10 text-blue-600">
-                                  Graded
-                                </Badge>
-                              )}
                             </div>
                             {quiz.description && (
                               <p className="text-sm text-text-secondary mb-2 line-clamp-2">{quiz.description}</p>
@@ -297,8 +325,8 @@ export default function QuizzesPage() {
                       </div>
 
                       <div className="flex flex-wrap items-center gap-4 text-sm pt-4">
-                        {/* Only students can take quizzes */}
-                        {user?.role === "student" && quiz.quizLink && (
+                        {/* Only students can take quizzes - hide button if submitted */}
+                        {user?.role === "student" && quiz.quizLink && !isSubmitted && (
                           <Button
                             variant="outline"
                             size="sm"

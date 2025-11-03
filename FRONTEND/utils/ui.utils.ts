@@ -36,32 +36,33 @@ export function getStatusColor(status: string): {
     case "in_progress":
     case "in progress":
       return {
-        bg: "bg-warning/10",
-        text: "text-warning",
+        bg: "bg-yellow-500/10",
+        text: "text-yellow-500",
         label: "Pending",
       }
     
     case "submitted":
     case "done":
       return {
-        bg: "bg-primary/10",
-        text: "text-primary",
+        bg: "bg-blue-500/10",
+        text: "text-blue-500",
         label: "Submitted",
       }
     
     case "graded":
     case "reviewed":
       return {
-        bg: "bg-foreground/10",
-        text: "text-foreground",
+        bg: "bg-green-500/10",
+        text: "text-green-500",
         label: "Graded",
       }
     
     case "overdue":
     case "late":
+    case "due":
       return {
-        bg: "bg-destructive/10",
-        text: "text-destructive",
+        bg: "bg-red-500/10",
+        text: "text-red-500",
         label: "Overdue",
       }
     

@@ -25,7 +25,7 @@ export interface Quiz {
   document: string | null
   documentName: string | null
   documentType: string | null
-  status: "active" | "inactive"
+  status: "active" | "inactive" // Quiz enabled/disabled status
   createdAt: string
   updatedAt: string
   
@@ -40,7 +40,9 @@ export interface Quiz {
     submittedDocument?: string
     submittedDocumentName?: string
     submittedDocumentType?: string
+    status?: "pending" | "submitted" | "graded" | "due" // Submission status
   } | null
+  submissionStatus?: "pending" | "submitted" | "graded" | "due" // Status from submission
   
   // Statistics (for teacher view)
   submissionStats?: {
@@ -70,6 +72,7 @@ export interface QuizSubmission {
   grade: number | null
   feedback: string | null
   gradedAt: string | null
+  status: "pending" | "submitted" | "graded" | "due"
   createdAt: string
   updatedAt: string
 }

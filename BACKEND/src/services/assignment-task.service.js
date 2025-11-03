@@ -82,8 +82,7 @@ class AssignmentTaskService {
         assignedTo: studentIds,
         document: document || null,
         documentName: documentName || null,
-        documentType: documentType || null,
-        status: 'pending'
+        documentType: documentType || null
       });
 
       const populatedAssignment = await Assignment.findById(assignment._id)
@@ -135,10 +134,41 @@ class AssignmentTaskService {
         Assignment.countDocuments({ assignedBy: teacherId })
       ]);
 
+      // Add submission statistics for each assignment
+      const AssignmentSubmission = require('../models/AssignmentSubmission.model');
+      const assignmentsWithStats = await Promise.all(
+        assignments.map(async (assignment) => {
+          const assignmentObj = assignment.toObject();
+          const totalStudents = assignment.assignedTo.length;
+          
+          // Get submission counts
+          const [submittedCount, gradedCount] = await Promise.all([
+            AssignmentSubmission.countDocuments({
+              assignment: assignment._id,
+              isSubmitted: true
+            }),
+            AssignmentSubmission.countDocuments({
+              assignment: assignment._id,
+              grade: { $ne: null }
+            })
+          ]);
+
+          return {
+            ...assignmentObj,
+            submissionStats: {
+              total: totalStudents,
+              submitted: submittedCount,
+              graded: gradedCount,
+              pending: totalStudents - submittedCount
+            }
+          };
+        })
+      );
+
       const totalPages = Math.ceil(total / limitNum);
 
       return {
-        assignments,
+        assignments: assignmentsWithStats,
         pagination: {
           currentPage: pageNum,
           limit: limitNum,
@@ -204,28 +234,26 @@ class AssignmentTaskService {
         submissionMap.set(sub.assignment.toString(), sub);
       });
 
-      // Add submission info to each assignment and calculate dynamic status
+      // Add submission info to each assignment and use submission status
       const assignmentsWithSubmission = assignments.map(assignment => {
         const assignmentObj = assignment.toObject();
         const submission = submissionMap.get(assignment._id.toString());
         const now = new Date();
         const dueDate = new Date(assignment.dueDate);
         
-        // Calculate status based on submission state and due date
+        // Use submission status if it exists, otherwise check if overdue
         let status = 'pending';
-        if (submission && submission.isSubmitted) {
-          if (submission.grade !== null && submission.gradedAt !== null) {
-            status = 'graded';
-          } else {
-            status = 'submitted';
-          }
+        if (submission) {
+          // Use the actual status field from the submission
+          status = submission.status || 'pending';
         } else if (now > dueDate) {
-          status = 'late';
+          // If no submission and past due date, mark as overdue
+          status = 'due';
         }
         
         return {
           ...assignmentObj,
-          status, // Override with calculated status
+          status, // Use submission status or calculated status
           submission: submission ? {
             _id: submission._id,
             isSubmitted: submission.isSubmitted,
@@ -234,7 +262,8 @@ class AssignmentTaskService {
             feedback: submission.feedback,
             gradedAt: submission.gradedAt,
             submittedDocument: submission.submittedDocument,
-            submittedDocumentName: submission.submittedDocumentName
+            submittedDocumentName: submission.submittedDocumentName,
+            status: submission.status
           } : null
         };
       });

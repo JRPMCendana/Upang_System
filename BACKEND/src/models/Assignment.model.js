@@ -43,11 +43,6 @@ const assignmentSchema = new mongoose.Schema({
   documentType: {
     type: String,
     default: null
-  },
-  status: {
-    type: String,
-    enum: ['pending', 'submitted', 'graded', 'due'],
-    default: 'pending'
   }
 }, {
   timestamps: true,

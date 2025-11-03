@@ -18,7 +18,7 @@ export interface Submission {
   maxGrade: number
   feedback?: string | null
   gradedAt?: string | null
-  status: "graded" | "pending"
+  status: "pending" | "submitted" | "graded" | "due"
   dueDate?: string
   submittedDocument?: string
   submittedDocumentName?: string
