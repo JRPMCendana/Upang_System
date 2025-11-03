@@ -8,7 +8,15 @@ import "./globals.css"
 export const metadata: Metadata = {
   title: "UPangLearn - Smart E-Learning Management System",
   description: "A comprehensive platform for online teaching and learning",
-    generator: 'v0.app'
+  generator: 'v0.app',
+  icons: {
+    icon: [
+      { url: '/icon.png', sizes: 'any' },
+    ],
+    apple: [
+      { url: '/icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
 }
 
 export default function RootLayout({
