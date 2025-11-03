@@ -3,6 +3,8 @@ const QuizService = require('../services/quiz.service');
 const AssignmentTaskService = require('../services/assignment-task.service');
 const SubmissionService = require('../services/submission.service');
 const QuizSubmissionService = require('../services/quiz-submission.service');
+const AdminStatsService = require('../services/admin-stats.service');
+const AdminSubmissionService = require('../services/admin-submission.service');
 
 class AdminController {
   static async createAccount(req, res, next) {
@@ -146,8 +148,9 @@ class AdminController {
     try {
       const page = req.query.page || 1;
       const limit = req.query.limit || 10;
+      const teacherId = req.query.teacherId || null;
 
-      const result = await QuizService.getAllQuizzes(page, limit);
+      const result = await QuizService.getAllQuizzes(page, limit, teacherId);
 
       res.status(200).json({
         success: true,
@@ -163,8 +166,9 @@ class AdminController {
     try {
       const page = req.query.page || 1;
       const limit = req.query.limit || 10;
+      const teacherId = req.query.teacherId || null;
 
-      const result = await AssignmentTaskService.getAllAssignments(page, limit);
+      const result = await AssignmentTaskService.getAllAssignments(page, limit, teacherId);
 
       res.status(200).json({
         success: true,
@@ -206,6 +210,72 @@ class AdminController {
         pagination: result.pagination
       });
     } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getSystemStatistics(req, res, next) {
+    try {
+      const stats = await AdminStatsService.getSystemStatistics();
+
+      res.status(200).json({
+        success: true,
+        data: stats
+      });
+    } catch (error) {
+      console.error('Error in getSystemStatistics:', error);
+      next(error);
+    }
+  }
+
+  static async getAllSubmissionsUnified(req, res, next) {
+    try {
+      const page = req.query.page || 1;
+      const limit = req.query.limit || 10;
+      const type = req.query.type || 'all'; // 'assignment', 'quiz', or 'all'
+      const status = req.query.status || 'all'; // 'graded', 'pending', or 'all'
+      const search = req.query.search || '';
+
+      const result = await AdminSubmissionService.getAllSubmissions(
+        page,
+        limit,
+        type,
+        status,
+        search
+      );
+
+      res.status(200).json({
+        success: true,
+        data: result.submissions,
+        pagination: result.pagination,
+        breakdown: result.breakdown
+      });
+    } catch (error) {
+      console.error('Error in getAllSubmissionsUnified:', error);
+      next(error);
+    }
+  }
+
+  static async getSubmissionDetail(req, res, next) {
+    try {
+      const { submissionId } = req.params;
+      const { type } = req.query; // 'assignment' or 'quiz'
+
+      if (!type || (type !== 'assignment' && type !== 'quiz')) {
+        return res.status(400).json({
+          error: 'Validation Error',
+          message: 'Type query parameter is required and must be "assignment" or "quiz"'
+        });
+      }
+
+      const submission = await AdminSubmissionService.getSubmissionById(submissionId, type);
+
+      res.status(200).json({
+        success: true,
+        data: submission
+      });
+    } catch (error) {
+      console.error('Error in getSubmissionDetail:', error);
       next(error);
     }
   }

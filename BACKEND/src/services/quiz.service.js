@@ -281,7 +281,7 @@ class QuizService {
         };
       }
 
-      // Verify access: teacher can only see their own quizzes, student can only see quizzes assigned to them
+      // Verify access: teacher can only see their own quizzes, student can only see quizzes assigned to them, admin can see all
       if (userRole === 'teacher') {
         if (quiz.assignedBy._id.toString() !== userId.toString()) {
           throw {
@@ -299,6 +299,8 @@ class QuizService {
             message: 'Access denied. This quiz is not assigned to you.'
           };
         }
+      } else if (userRole === 'administrator' || userRole === 'admin') {
+        // Admin can access all quizzes
       }
 
       return quiz;
@@ -474,7 +476,7 @@ class QuizService {
     }
   }
 
-  static async getAllQuizzes(page = 1, limit = 10) {
+  static async getAllQuizzes(page = 1, limit = 10, teacherId = null) {
     try {
       const pageNum = parseInt(page, 10);
       const limitNum = parseInt(limit, 10);
@@ -495,14 +497,20 @@ class QuizService {
 
       const skip = (pageNum - 1) * limitNum;
 
+      // Build query filter
+      const filter = {};
+      if (teacherId) {
+        filter.assignedBy = teacherId;
+      }
+
       const [quizzes, total] = await Promise.all([
-        Quiz.find({})
+        Quiz.find(filter)
           .populate('assignedBy', 'firstName lastName email username')
           .populate('assignedTo', 'firstName lastName email username')
           .sort({ createdAt: -1 })
           .skip(skip)
           .limit(limitNum),
-        Quiz.countDocuments({})
+        Quiz.countDocuments(filter)
       ]);
 
       const totalPages = Math.ceil(total / limitNum);

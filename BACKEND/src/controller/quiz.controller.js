@@ -80,10 +80,13 @@ class QuizController {
         result = await QuizService.getQuizzesByTeacher(userId, page, limit);
       } else if (role === 'student') {
         result = await QuizService.getQuizzesByStudent(userId, page, limit);
+      } else if (role === 'administrator' || role === 'admin') {
+        // Admins can see all quizzes
+        result = await QuizService.getAllQuizzes(page, limit);
       } else {
         return res.status(403).json({
           error: 'Forbidden',
-          message: 'Only teachers and students can view quizzes'
+          message: 'Unauthorized role'
         });
       }
 

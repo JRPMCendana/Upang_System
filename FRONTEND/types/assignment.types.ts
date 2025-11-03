@@ -17,7 +17,7 @@ export interface Assignment {
   description: string
   instructions?: string
   dueDate: string
-  totalPoints?: number
+  maxGrade?: number
   status: "pending" | "submitted" | "graded" | "late" // Updated to match backend
   attachments?: string[]
   submissionType: "file" | "text" | "link"
@@ -90,7 +90,7 @@ export interface CreateAssignmentData {
   description: string
   instructions?: string
   dueDate: string
-  totalPoints?: number
+  maxGrade?: number
   submissionType?: "file" | "text" | "link"
   allowLateSubmission?: boolean
 }
@@ -100,7 +100,7 @@ export interface UpdateAssignmentData {
   description?: string
   instructions?: string
   dueDate?: string
-  totalPoints?: number
+  maxGrade?: number
   status?: "pending" | "submitted" | "graded" | "late" // Updated to match backend
   allowLateSubmission?: boolean
 }

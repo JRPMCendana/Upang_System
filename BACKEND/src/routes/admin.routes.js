@@ -23,5 +23,14 @@ router.get('/assignment-submissions', authMiddleware, authorize('administrator')
 
 router.get('/quiz-submissions', authMiddleware, authorize('administrator'), AdminController.getAllQuizSubmissions);
 
+// Admin statistics
+router.get('/statistics', authMiddleware, authorize('administrator'), AdminController.getSystemStatistics);
+
+// Unified submissions endpoint (combines assignments and quizzes)
+router.get('/submissions', authMiddleware, authorize('administrator'), AdminController.getAllSubmissionsUnified);
+
+// Get specific submission detail
+router.get('/submissions/:submissionId', authMiddleware, authorize('administrator'), AdminController.getSubmissionDetail);
+
 module.exports = router;
 

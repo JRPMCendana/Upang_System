@@ -24,7 +24,11 @@ export default function AdminDashboard() {
     recentUsersLoading,
     totalStudents,
     totalTeachers,
+    filesUploaded,
+    totalSubmissions,
+    averageScore,
     statsLoading,
+    systemStatsLoading,
     refreshAll,
   } = useAdminStats()
 
@@ -56,7 +60,7 @@ export default function AdminDashboard() {
   }
 
   // Show loading state while checking auth or fetching data
-  if (authLoading || recentUsersLoading || statsLoading) {
+  if (authLoading || recentUsersLoading || statsLoading || systemStatsLoading) {
     return (
       <div className="flex h-screen bg-bg-secondary">
         <Sidebar />
@@ -186,13 +190,13 @@ export default function AdminDashboard() {
               )}
             </Card>
 
-            {/* Subject Reports (placeholder) */}
+            {/* System Statistics */}
             <div className="grid md:grid-cols-3 gap-6">
               <Card className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-text-secondary mb-1">Files Uploaded</p>
-                    <p className="text-2xl font-bold">312</p>
+                    <p className="text-2xl font-bold">{filesUploaded.toLocaleString()}</p>
                   </div>
                   <FileText className="w-10 h-10 text-primary/20" />
                 </div>
@@ -201,7 +205,7 @@ export default function AdminDashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-text-secondary mb-1">Submissions</p>
-                    <p className="text-2xl font-bold">4,820</p>
+                    <p className="text-2xl font-bold">{totalSubmissions.toLocaleString()}</p>
                   </div>
                   <ClipboardList className="w-10 h-10 text-accent/20" />
                 </div>
@@ -210,7 +214,7 @@ export default function AdminDashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-text-secondary mb-1">Avg Score</p>
-                    <p className="text-2xl font-bold">86%</p>
+                    <p className="text-2xl font-bold">{averageScore}%</p>
                   </div>
                   <TrendingUp className="w-10 h-10 text-warning/20" />
                 </div>

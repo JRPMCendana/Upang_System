@@ -295,9 +295,9 @@ export default function AssignmentsPage() {
                           <Calendar className="w-4 h-4" />
                           <span>Due: {formatDateTime(assignment.dueDate)}</span>
                         </div>
-                        {assignment.totalPoints && (
+                        {assignment.maxGrade && (
                           <div className="flex items-center gap-2">
-                            <span>{assignment.totalPoints} points</span>
+                            <span>{assignment.maxGrade} points</span>
                           </div>
                         )}
                         

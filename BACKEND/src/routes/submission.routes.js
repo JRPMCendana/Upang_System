@@ -15,13 +15,13 @@ router.put('/:assignmentId/replace', authMiddleware, authorize('student'), uploa
 
 router.get('/:assignmentId/my-submission', authMiddleware, authorize('student'), SubmissionController.getSubmission);
 
-// Teacher routes - view all submissions for an assignment, grade submissions
-router.get('/:assignmentId/submissions', authMiddleware, authorize('teacher'), SubmissionController.getSubmissionsByAssignment);
+// Teacher & Admin routes - view all submissions for an assignment, grade submissions
+router.get('/:assignmentId/submissions', authMiddleware, authorize('teacher', 'administrator'), SubmissionController.getSubmissionsByAssignment);
 
-router.put('/:submissionId/grade', authMiddleware, authorize('teacher'), SubmissionController.gradeSubmission);
+router.put('/:submissionId/grade', authMiddleware, authorize('teacher', 'administrator'), SubmissionController.gradeSubmission);
 
 // File download route for assignment submissions
-router.get('/files/:fileId', authMiddleware, authorize('teacher', 'student'), FileController.getFile);
+router.get('/files/:fileId', authMiddleware, authorize('teacher', 'student', 'administrator'), FileController.getFile);
 
 module.exports = router;
 

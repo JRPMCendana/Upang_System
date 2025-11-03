@@ -6,15 +6,39 @@ import { Header } from "@/components/dashboard/header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { FileText, Calendar, Search, Eye, Pencil, Archive } from "lucide-react"
+import { FileText, Calendar, Search, Loader2 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+import { useSubmissions } from "@/hooks/use-submissions"
+import { formatRelativeTime } from "@/utils/date.utils"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 export default function StudentSubmissionsPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
+  const [typeFilter, setTypeFilter] = useState("all")
+  const [statusFilter, setStatusFilter] = useState("all")
+
+  // Use custom hook for submissions
+  const {
+    submissions,
+    loading,
+    totalItems,
+    currentPage,
+    totalPages,
+    hasNextPage,
+    hasPrevPage,
+    breakdown,
+    fetchSubmissions,
+  } = useSubmissions()
 
   useEffect(() => {
     if (authLoading) return
@@ -28,34 +52,53 @@ export default function StudentSubmissionsPage() {
     }
   }, [isAuthenticated, router, user, authLoading])
 
-  if (authLoading) {
+  // Fetch submissions on mount and when filters change
+  useEffect(() => {
+    if (isAuthenticated && user?.role === "admin") {
+      fetchSubmissions(1, 10, typeFilter, statusFilter, searchQuery)
+    }
+  }, [isAuthenticated, user, typeFilter, statusFilter, fetchSubmissions])
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (isAuthenticated && user?.role === "admin") {
+        fetchSubmissions(1, 10, typeFilter, statusFilter, searchQuery)
+      }
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+
+  const handlePageChange = (newPage: number) => {
+    fetchSubmissions(newPage, 10, typeFilter, statusFilter, searchQuery)
+  }
+
+  const getScoreColor = (grade: number | null, maxGrade: number) => {
+    if (grade === null) return "bg-gray-500/10 text-gray-500"
+    const percentage = (grade / maxGrade) * 100
+    if (percentage >= 90) return "bg-green-500/10 text-green-500"
+    if (percentage >= 75) return "bg-blue-500/10 text-blue-500"
+    if (percentage >= 60) return "bg-yellow-500/10 text-yellow-500"
+    return "bg-red-500/10 text-red-500"
+  }
+
+  const getTypeIcon = (type: string) => {
+    return type === "quiz" ? "🧠" : "📄"
+  }
+
+  if (authLoading || loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-bg-secondary">
         <div className="text-center">
-          <FileText className="w-8 h-8 animate-pulse mx-auto mb-4 text-primary" />
-          <p className="text-text-secondary">Loading...</p>
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-text-secondary">Loading submissions...</p>
         </div>
       </div>
     )
   }
 
   if (!isAuthenticated || (user && user.role !== "admin")) return null
-
-  const mockSubmissions = [
-    { id: 1, student: "Jane Doe", activity: "React Hooks Assignment", course: "Introduction to React", score: 92, date: "2025-10-24" },
-    { id: 2, student: "John Smith", activity: "Grid Layout Project", course: "Web Design Basics", score: 85, date: "2025-10-22" },
-    { id: 3, student: "Alice Johnson", activity: "Async/Await Challenges", course: "JavaScript Fundamentals", score: 78, date: "2025-10-20" },
-    { id: 4, student: "Bob Williams", activity: "Portfolio Website", course: "Advanced CSS", score: 88, date: "2025-10-18" },
-  ]
-
-  const submissions = mockSubmissions.filter((s) => {
-    const q = searchQuery.toLowerCase()
-    return (
-      s.student.toLowerCase().includes(q) ||
-      s.activity.toLowerCase().includes(q) ||
-      s.course.toLowerCase().includes(q)
-    )
-  })
 
   return (
     <div className="flex h-screen bg-bg-secondary">
@@ -69,59 +112,155 @@ export default function StudentSubmissionsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-bold mb-2">Student Submissions</h1>
-                <p className="text-text-secondary">Review and manage submissions</p>
+                <p className="text-text-secondary">
+                  Review and manage submissions • {totalItems} total
+                </p>
               </div>
             </div>
 
-            {/* Search */}
+            {/* Summary Stats */}
+            <div className="grid grid-cols-3 gap-4">
+              <Card className="p-4">
+                <p className="text-sm text-text-secondary mb-1">Total Submissions</p>
+                <p className="text-2xl font-bold">{breakdown.total}</p>
+              </Card>
+              <Card className="p-4">
+                <p className="text-sm text-text-secondary mb-1">Assignments</p>
+                <p className="text-2xl font-bold">{breakdown.totalAssignments}</p>
+              </Card>
+              <Card className="p-4">
+                <p className="text-sm text-text-secondary mb-1">Quizzes</p>
+                <p className="text-2xl font-bold">{breakdown.totalQuizzes}</p>
+              </Card>
+            </div>
+
+            {/* Filters */}
             <Card className="p-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 w-5 h-5 text-text-secondary" />
-                <Input
-                  placeholder="Search by student, activity, or course..."
-                  className="pl-10"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 w-5 h-5 text-text-secondary" />
+                  <Input
+                    placeholder="Search by student or activity..."
+                    className="pl-10"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="assignment">Assignments</SelectItem>
+                    <SelectItem value="quiz">Quizzes</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="graded">Graded</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </Card>
 
             {/* Submissions list */}
             <div className="space-y-4">
-              {submissions.map((s) => (
-                <Card key={s.id} className="p-6 hover:shadow-lg transition">
+              {loading && (
+                <div className="text-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+                  <p className="text-text-secondary">Loading submissions...</p>
+                </div>
+              )}
+
+              {!loading && submissions.length === 0 && (
+                <Card className="p-12 text-center">
+                  <FileText className="w-12 h-12 mx-auto mb-4 text-text-secondary" />
+                  <h3 className="text-lg font-semibold mb-2">No submissions found</h3>
+                  <p className="text-text-secondary">
+                    {searchQuery || typeFilter !== "all" || statusFilter !== "all"
+                      ? "Try adjusting your filters"
+                      : "No submissions have been submitted yet"}
+                  </p>
+                </Card>
+              )}
+
+              {!loading && submissions.map((s) => (
+                <Card key={s._id} className="p-6 hover:shadow-lg transition">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
-                        <FileText className="w-6 h-6 text-primary" />
+                      <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center shrink-0 text-2xl">
+                        {getTypeIcon(s.type)}
                       </div>
                       <div>
-                        <h3 className="text-lg font-semibold mb-1">{s.activity}</h3>
-                        <p className="text-sm text-text-secondary mb-1">{s.course}</p>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-lg font-semibold">{s.activity}</h3>
+                          <Badge variant="outline" className="text-xs">
+                            {s.type === "quiz" ? "Quiz" : "Assignment"}
+                          </Badge>
+                        </div>
+                        {s.description && (
+                          <p className="text-sm text-text-secondary mb-2 line-clamp-1">
+                            {s.description}
+                          </p>
+                        )}
                         <div className="flex flex-wrap items-center gap-4 text-sm text-text-secondary">
                           <span className="font-medium">{s.student}</span>
-                          <span className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4" /> {s.date}
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-4 h-4" />
+                            {formatRelativeTime(s.submittedAt)}
                           </span>
-                          <Badge className="bg-accent/10 text-accent">Score: {s.score}</Badge>
+                          {s.grade !== null ? (
+                            <Badge className={getScoreColor(s.grade, s.maxGrade)}>
+                              Score: {s.grade}/{s.maxGrade}
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-gray-500/10 text-gray-500">
+                              Pending Grade
+                            </Badge>
+                          )}
+                          {s.submittedDocumentName && (
+                            <span className="text-xs">📎 {s.submittedDocumentName}</span>
+                          )}
                         </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" className="gap-1">
-                        <Eye className="w-4 h-4" /> View
-                      </Button>
-                      <Button variant="outline" size="sm" className="gap-1">
-                        <Pencil className="w-4 h-4" /> Edit
-                      </Button>
-                      <Button variant="ghost" size="sm" className="gap-1">
-                        <Archive className="w-4 h-4" /> Archive
-                      </Button>
                     </div>
                   </div>
                 </Card>
               ))}
             </div>
+
+            {/* Pagination */}
+            {!loading && submissions.length > 0 && (
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-text-secondary">
+                  Page {currentPage} of {totalPages} • Showing {submissions.length} of {totalItems} submissions
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={!hasPrevPage}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={!hasNextPage}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </main>
       </div>

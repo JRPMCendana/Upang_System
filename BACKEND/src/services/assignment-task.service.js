@@ -7,7 +7,7 @@ const { deleteFileFromGridFS } = require('../middleware/upload.middleware');
 class AssignmentTaskService {
   static async createAssignment(teacherId, assignmentData) {
     try {
-      const { title, description, dueDate, studentIds, document, documentName, documentType } = assignmentData;
+      const { title, description, dueDate, maxGrade, studentIds, document, documentName, documentType } = assignmentData;
 
       if (!title || !description || !dueDate) {
         throw {
@@ -77,6 +77,7 @@ class AssignmentTaskService {
         title,
         description,
         dueDate: due,
+        maxGrade: maxGrade || 100,
         assignedBy: teacherId,
         assignedTo: studentIds,
         document: document || null,
@@ -277,7 +278,7 @@ class AssignmentTaskService {
         };
       }
 
-      // Verify access: teacher can only see their own assignments, student can only see assignments assigned to them
+      // Verify access: teacher can only see their own assignments, student can only see assignments assigned to them, admin can see all
       if (userRole === 'teacher') {
         if (assignment.assignedBy._id.toString() !== userId.toString()) {
           throw {
@@ -295,6 +296,8 @@ class AssignmentTaskService {
             message: 'Access denied. This assignment is not assigned to you.'
           };
         }
+      } else if (userRole === 'administrator' || userRole === 'admin') {
+        // Admin can access all assignments
       }
 
       return assignment;
@@ -313,7 +316,7 @@ class AssignmentTaskService {
 
   static async updateAssignment(assignmentId, teacherId, updateData) {
     try {
-      const { title, description, dueDate, studentIds, document, documentName, documentType } = updateData;
+      const { title, description, dueDate, maxGrade, studentIds, document, documentName, documentType } = updateData;
 
       const assignment = await Assignment.findById(assignmentId);
       if (!assignment) {
@@ -360,6 +363,16 @@ class AssignmentTaskService {
           };
         }
         assignment.dueDate = due;
+      }
+
+      if (maxGrade !== undefined) {
+        if (maxGrade < 0 || maxGrade > 1000) {
+          throw {
+            status: 400,
+            message: 'Max grade must be between 0 and 1000'
+          };
+        }
+        assignment.maxGrade = maxGrade;
       }
 
       if (studentIds !== undefined) {
@@ -463,7 +476,7 @@ class AssignmentTaskService {
     }
   }
 
-  static async getAllAssignments(page = 1, limit = 10) {
+  static async getAllAssignments(page = 1, limit = 10, teacherId = null) {
     try {
       const pageNum = parseInt(page, 10);
       const limitNum = parseInt(limit, 10);
@@ -484,14 +497,20 @@ class AssignmentTaskService {
 
       const skip = (pageNum - 1) * limitNum;
 
+      // Build query filter
+      const filter = {};
+      if (teacherId) {
+        filter.assignedBy = teacherId;
+      }
+
       const [assignments, total] = await Promise.all([
-        Assignment.find({})
+        Assignment.find(filter)
           .populate('assignedBy', 'firstName lastName email username')
           .populate('assignedTo', 'firstName lastName email username')
           .sort({ createdAt: -1 })
           .skip(skip)
           .limit(limitNum),
-        Assignment.countDocuments({})
+        Assignment.countDocuments(filter)
       ]);
 
       const totalPages = Math.ceil(total / limitNum);
