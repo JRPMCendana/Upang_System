@@ -67,13 +67,20 @@ export function EditUserForm({ open, onOpenChange, onSuccess, user }: EditUserFo
     }
   }, [user])
 
+  const { users: fetchedTeachers, fetchUsers } = useUsers()
+
   useEffect(() => {
     if (user?.role === "student" && open) {
       fetchTeachers()
     }
   }, [user, open])
 
-  const { users: fetchedTeachers, fetchUsers } = useUsers()
+  useEffect(() => {
+    // Update teachers state when fetchedTeachers changes
+    if (fetchedTeachers && fetchedTeachers.length > 0) {
+      setTeachers(fetchedTeachers)
+    }
+  }, [fetchedTeachers])
 
   const fetchTeachers = async () => {
     setLoadingTeachers(true)

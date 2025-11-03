@@ -145,24 +145,6 @@ export function CreateAssignmentDialog({ open, onOpenChange, onSubmit, loading }
             <p className="text-xs text-text-secondary">{formData.description.length}/500 characters</p>
           </div>
 
-          {/* Instructions */}
-          <div className="space-y-2">
-            <Label htmlFor="instructions">Detailed Instructions</Label>
-            <Textarea
-              id="instructions"
-              placeholder="Provide detailed instructions for students..."
-              value={formData.instructions}
-              onChange={(e) => {
-                if (e.target.value.length <= 2000) {
-                  setFormData({ ...formData, instructions: e.target.value })
-                }
-              }}
-              rows={4}
-              className="resize-none"
-            />
-            <p className="text-xs text-text-secondary">{(formData.instructions || "").length}/2000 characters</p>
-          </div>
-
           {/* Due Date and Points */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
