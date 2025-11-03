@@ -6,13 +6,14 @@ import { Header } from "@/components/dashboard/header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { FileText, Search, Plus, Calendar, AlertCircle, CheckCircle, Clock, MoreVertical, Download } from "lucide-react"
+import { FileText, Search, Plus, Calendar, AlertCircle, CheckCircle, Clock, MoreVertical, Download, Edit } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { getStatusColor } from "@/utils/ui.utils"
 import { useAssignments } from "@/hooks/use-assignments"
 import { CreateAssignmentDialog } from "@/components/dialogs/create-assignment-dialog"
+import { EditAssignmentDialog } from "@/components/dialogs/edit-assignment-dialog"
 import { SubmitAssignmentDialog } from "@/components/dialogs/submit-assignment-dialog"
 import type { Assignment } from "@/types/assignment.types"
 import { formatDateTime } from "@/utils/date.utils"
@@ -23,6 +24,7 @@ export default function AssignmentsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false)
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null)
 
@@ -32,6 +34,7 @@ export default function AssignmentsPage() {
     initialLoading,
     fetchAssignments,
     createAssignment,
+    updateAssignment,
     submitAssignment,
     unsubmitAssignment,
     downloadAssignmentFile,
@@ -91,6 +94,21 @@ export default function AssignmentsPage() {
   const handleOpenSubmitDialog = (assignment: Assignment) => {
     setSelectedAssignment(assignment)
     setSubmitDialogOpen(true)
+  }
+
+  const handleOpenEditDialog = (assignment: Assignment) => {
+    setSelectedAssignment(assignment)
+    setEditDialogOpen(true)
+  }
+
+  const handleUpdateAssignment = async (id: string, data: Partial<Assignment>, file?: File) => {
+    const result = await updateAssignment(id, data, file)
+    if (result) {
+      setEditDialogOpen(false)
+      setSelectedAssignment(null)
+      // Refresh assignments to get updated data
+      fetchAssignments()
+    }
   }
 
   const getStatusIcon = (status: string) => {
@@ -312,14 +330,24 @@ export default function AssignmentsPage() {
                         )}
                         
                         {user?.role === "teacher" ? (
-                          <Button
-                            className="ml-auto"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => router.push(`/dashboard/assignments/${assignment._id}/submissions`)}
-                          >
-                            Review Submissions
-                          </Button>
+                          <div className="ml-auto flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenEditDialog(assignment)}
+                              className="gap-2"
+                            >
+                              <Edit className="w-4 h-4" />
+                              Edit
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => router.push(`/dashboard/assignments/${assignment._id}/submissions`)}
+                            >
+                              Review Submissions
+                            </Button>
+                          </div>
                         ) : (
                           <>
                             {/* Show grade if graded */}
@@ -375,6 +403,15 @@ export default function AssignmentsPage() {
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         onSubmit={handleCreateAssignment}
+      />
+
+      {/* Edit Assignment Dialog */}
+      <EditAssignmentDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onSubmit={handleUpdateAssignment}
+        assignment={selectedAssignment}
+        loading={loading}
       />
 
       {/* Submit Assignment Dialog */}
