@@ -180,15 +180,18 @@ export default function DashboardPage() {
                         return (
                           <motion.div 
                             key={assignment._id} 
-                            className="flex items-center justify-between p-4 bg-bg-secondary rounded-lg hover:bg-bg-tertiary transition-colors cursor-pointer"
+                            className="flex items-center justify-between p-4 bg-bg-secondary rounded-lg hover:bg-bg-tertiary transition-colors cursor-pointer group"
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.6 + (i * 0.1) }}
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
+                            onClick={() => router.push('/dashboard/assignments')}
                           >
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium truncate">{assignment.title}</p>
+                              <p className="font-medium truncate group-hover:text-primary transition-colors">
+                                {assignment.title}
+                              </p>
                               <p className="text-sm text-text-secondary">
                                 Due {formatDistanceToNow(new Date(assignment.dueDate), { addSuffix: true })}
                               </p>
@@ -196,7 +199,7 @@ export default function DashboardPage() {
                                 By {assignment.assignedBy.firstName} {assignment.assignedBy.lastName}
                               </p>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3">
                               {assignment.submission?.grade !== null && assignment.submission?.grade !== undefined && (
                                 <span className="text-sm font-semibold text-success">
                                   {assignment.submission.grade}%
@@ -205,6 +208,15 @@ export default function DashboardPage() {
                               <Badge className={`${statusColor.bg} ${statusColor.text}`}>
                                 {statusColor.label}
                               </Badge>
+                              <button 
+                                className="px-3 py-1.5 text-sm bg-primary hover:bg-primary-dark text-white rounded-md transition-colors opacity-0 group-hover:opacity-100"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  router.push('/dashboard/assignments')
+                                }}
+                              >
+                                View
+                              </button>
                             </div>
                           </motion.div>
                         )

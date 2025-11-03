@@ -18,7 +18,7 @@ class DashboardService {
     }
 
     const baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-    const response = await fetch(`${baseURL}/api/dashboard/student`, {
+    const response = await fetch(`${baseURL}/dashboard/student`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
