@@ -39,6 +39,7 @@ export interface Quiz {
     gradedAt?: string | null
     submittedDocument?: string
     submittedDocumentName?: string
+    submittedDocumentType?: string
   } | null
   
   // Statistics (for teacher view)
