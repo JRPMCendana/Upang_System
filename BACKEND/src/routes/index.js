@@ -11,6 +11,7 @@ const assignmentTaskRoutes = require('./assignment-task.routes');
 const submissionRoutes = require('./submission.routes');
 const quizRoutes = require('./quiz.routes');
 const dashboardRoutes = require('./dashboard.routes');
+const gradeRoutes = require('./grade.routes');
 
 // Routes that don't require database (always available)
 router.use('/', homeRoutes);
@@ -26,6 +27,7 @@ router.use('/api/assignments', checkDatabaseConnection, assignmentTaskRoutes);
 router.use('/api/submissions', checkDatabaseConnection, submissionRoutes);
 router.use('/api/quizzes', checkDatabaseConnection, quizRoutes);
 router.use('/api/dashboard', checkDatabaseConnection, dashboardRoutes);
+router.use('/api/grades', checkDatabaseConnection, gradeRoutes);
 
 module.exports = router;
 
