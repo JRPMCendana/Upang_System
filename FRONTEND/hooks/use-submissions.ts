@@ -102,7 +102,7 @@ export function useSubmissions(): UseSubmissionsReturn {
    * Get detailed submission information
    */
   const getSubmissionDetail = useCallback(
-    async (submissionId: string, type: "assignment" | "quiz") => {
+    async (submissionId: string, type: "assignment" | "quiz" | "exam") => {
       try {
         const submission = await submissionService.getSubmissionById(
           submissionId,

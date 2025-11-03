@@ -5,7 +5,7 @@ import { apiClient } from "./api-client"
 
 export interface Submission {
   _id: string
-  type: "assignment" | "quiz"
+  type: "assignment" | "quiz" | "exam"
   activity: string
   activityId: string
   description?: string
@@ -45,6 +45,7 @@ export interface SubmissionsResponse {
   breakdown: {
     totalAssignments: number
     totalQuizzes: number
+    totalExams: number
     total: number
   }
 }
@@ -86,11 +87,11 @@ class SubmissionService {
   /**
    * Get submission detail by ID
    * @param submissionId - Submission ID
-   * @param type - Type: 'assignment' or 'quiz'
+   * @param type - Type: 'assignment', 'quiz', or 'exam'
    */
   async getSubmissionById(
     submissionId: string,
-    type: "assignment" | "quiz"
+    type: "assignment" | "quiz" | "exam"
   ): Promise<any> {
     const response = await apiClient.request<SubmissionDetailResponse>(
       `/admin/submissions/${submissionId}`,
