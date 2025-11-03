@@ -6,11 +6,23 @@ const config = require('../config/config');
 class EmailService {
   static getTransporter() {
     if (!config.email.host || !config.email.auth.user || !config.email.auth.pass) {
+      console.error('Email configuration missing:', {
+        host: !!config.email.host,
+        user: !!config.email.auth.user,
+        pass: !!config.email.auth.pass
+      });
       throw {
         status: 500,
         message: 'Email configuration is missing. Please check your SMTP settings in .env file.'
       };
     }
+
+    console.log('Creating email transporter:', {
+      host: config.email.host,
+      port: config.email.port,
+      secure: config.email.secure,
+      user: config.email.auth.user
+    });
 
     return nodemailer.createTransport({
       host: config.email.host,
