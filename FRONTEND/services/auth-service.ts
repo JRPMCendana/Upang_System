@@ -85,6 +85,13 @@ class AuthService {
   async getCurrentUser() {
     return apiClient.request("/auth/me", { method: "GET" })
   }
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+    return apiClient.request("/auth/change-password", {
+      method: "POST",
+      body: { currentPassword, newPassword },
+    })
+  }
 }
 
 export const authService = new AuthService()

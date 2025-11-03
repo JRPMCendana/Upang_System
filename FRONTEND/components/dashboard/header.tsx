@@ -39,7 +39,10 @@ export function Header() {
         <Button variant="ghost" size="icon" className="text-text-secondary">
         </Button>
 
-        <div className="flex items-center gap-3">
+        <div 
+          className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+          onClick={() => router.push("/dashboard/profile")}
+        >
           <Avatar className="cursor-pointer">
             <AvatarImage src="/placeholder-user.jpg" />
             <AvatarFallback>{user?.name ? user.name.substring(0, 2).toUpperCase() : "U"}</AvatarFallback>
