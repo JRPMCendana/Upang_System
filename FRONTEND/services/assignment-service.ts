@@ -11,7 +11,6 @@ import type {
   GetAssignmentsResponse,
 } from "@/types/assignment.types"
 
-// Re-export types for backward compatibility
 export type {
   Assignment,
   AssignmentSubmission,

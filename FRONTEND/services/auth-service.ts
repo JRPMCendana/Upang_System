@@ -31,8 +31,6 @@ export interface AuthResponse {
 class AuthService {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
-      // Backend returns { success, message, data: { token, role } } in this codebase
-      // and /auth/me returns { success, data: user }
       const raw = await apiClient.request<any>("/auth/login", {
         method: "POST",
         body: credentials,
@@ -46,7 +44,6 @@ class AuthService {
         throw new Error("Invalid auth response from server: missing token")
       }
 
-      // If the login response doesn't include the user object, fetch it via /auth/me
       apiClient.setToken(token)
       if (!user) {
         const me = await apiClient.request<any>("/auth/me", { method: "GET" })
@@ -59,7 +56,6 @@ class AuthService {
 
       return { token, user }
     } catch (error: any) {
-      // Re-throw the error to preserve status and message from backend
       throw error
     }
   }

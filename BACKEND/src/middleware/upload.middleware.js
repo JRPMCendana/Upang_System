@@ -2,11 +2,13 @@ const multer = require('multer');
 const { GridFSBucket } = require('mongodb');
 const mongoose = require('mongoose');
 
-// File filter - only allow PDF and images
+// File filter - allow PDF, DOC/DOCX, and images
 const fileFilter = (req, file, cb) => {
   // Allowed file types
   const allowedMimes = [
     'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'image/jpeg',
     'image/jpg',
     'image/png',
@@ -17,7 +19,7 @@ const fileFilter = (req, file, cb) => {
   if (allowedMimes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type. Only PDF and image files (JPEG, PNG, GIF, WEBP) are allowed.'), false);
+    cb(new Error('Invalid file type. Only PDF, DOC/DOCX, and image files (JPEG, PNG, GIF, WEBP) are allowed.'), false);
   }
 };
 
