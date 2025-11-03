@@ -7,6 +7,29 @@ const ExamSubmission = require('../models/ExamSubmission.model');
 const User = require('../models/User.model');
 const DbUtils = require('../utils/db.utils');
 
+/**
+ * Grade Calculation Formula:
+ * 
+ * Final Grade = 60% Class Standing + 40% Exams
+ * 
+ * Where:
+ * - Class Standing = (Quiz Average × 0.45) + (Assignment Average × 0.15)
+ * - Final Grade = (Class Standing × 0.60) + (Exam Average × 0.40)
+ * 
+ * Steps:
+ * 1. Calculate category averages (Assignments, Quizzes, Exams)
+ * 2. Calculate Class Standing = (Quiz avg × 0.45) + (Assignment avg × 0.15)
+ * 3. Calculate Final Grade = (Class Standing × 0.60) + (Exam avg × 0.40)
+ * 
+ * Example:
+ * - Assignments: 30%, 50% → Average = 40%
+ * - Quiz: 80%
+ * - Exam: 90%
+ * 
+ * Class Standing = (80 × 0.45) + (40 × 0.15) = 36 + 6 = 42
+ * Final Grade = (42 × 0.60) + (90 × 0.40) = 25.2 + 36 = 61.2 ≈ 61%
+ */
+
 class GradeService {
 
   static async getTeacherGradeStats(teacherId) {
@@ -95,7 +118,7 @@ class GradeService {
         examPercentages.push(Math.round(percentage * 10) / 10);
       });
 
-      // Calculate class average using weights: Exams 50%, Quizzes 35%, Assignments 15%
+      // Calculate class average using weights: 60% Class Standing (15% Assignments + 45% Quizzes) + 40% Exams
       const avg = (arr) => arr.length > 0 ? (arr.reduce((s, g) => s + g, 0) / arr.length) : 0;
       // If there are zero items in a category OR zero graded submissions, treat that category as 100%
       const assignmentAvg = (assignments.length === 0 || assignmentPercentages.length === 0)
@@ -109,7 +132,14 @@ class GradeService {
       const examAvg = (exams.length === 0 || examPercentages.length === 0)
         ? 100
         : avg(examPercentages);
-      const classAverage = Math.round((0.15 * assignmentAvg) + (0.35 * quizAvg) + (0.50 * examAvg));
+      
+      // Step 1: Calculate Class Standing (60% of final grade)
+      // Class Standing = (Quiz × 0.45) + (Assignment × 0.15)
+      const classStanding = (quizAvg * 0.45) + (assignmentAvg * 0.15);
+      
+      // Step 2: Calculate Final Grade
+      // Final Grade = (Class Standing × 0.60) + (Exam × 0.40)
+      const classAverage = Math.round((classStanding * 0.60) + (examAvg * 0.40));
 
   
       // Calculate pass rate based on students, not individual submissions
@@ -407,12 +437,19 @@ class GradeService {
         examPercents.push(pct);
       });
 
-      // Calculate overall average using weights: Exam 50%, Quiz 35%, Assignment 15%
+      // Calculate overall average using weights: 60% Class Standing (15% Assignments + 45% Quizzes) + 40% Exams
       const avg = (arr) => arr.length > 0 ? (arr.reduce((s, g) => s + g, 0) / arr.length) : 0;
       const aAvg = (assignments.length === 0 || assignmentPercents.length === 0) ? 100 : avg(assignmentPercents);
       const qAvg = (quizzes.length === 0 || quizPercents.length === 0) ? 100 : avg(quizPercents);
       const eAvg = (exams.length === 0 || examPercents.length === 0) ? 100 : avg(examPercents);
-      const overallAverage = Math.round((0.15 * aAvg) + (0.35 * qAvg) + (0.50 * eAvg));
+      
+      // Step 1: Calculate Class Standing (60% of final grade)
+      // Class Standing = (Quiz × 0.45) + (Assignment × 0.15)
+      const classStanding = (qAvg * 0.45) + (aAvg * 0.15);
+      
+      // Step 2: Calculate Final Grade
+      // Final Grade = (Class Standing × 0.60) + (Exam × 0.40)
+      const overallAverage = Math.round((classStanding * 0.60) + (eAvg * 0.40));
 
       // Get highest grade (as percentage)
       const highestGrade = percentageGrades.length > 0 ? Math.max(...percentageGrades) : 0;
@@ -722,7 +759,7 @@ class GradeService {
         return new Date(dateB) - new Date(dateA);
       });
 
-      // Calculate statistics using weighted formula (Exam 50%, Quiz 35%, Assignment 15%)
+      // Calculate statistics using weighted formula: 60% Class Standing (15% Assignments + 45% Quizzes) + 40% Exams
       const gradedAssignmentPercents = assignmentGrades.filter(g => g.percentage !== null).map(g => g.percentage);
       const gradedQuizPercents = quizGrades.filter(g => g.percentage !== null).map(g => g.percentage);
       const gradedExamPercents = examGrades.filter(g => g.percentage !== null).map(g => g.percentage);
@@ -731,7 +768,14 @@ class GradeService {
       const assignmentAvg = (assignments.length === 0) ? 100 : (gradedAssignmentPercents.length > 0 ? avg(gradedAssignmentPercents) : 0);
       const quizAvg = (quizzes.length === 0) ? 100 : (gradedQuizPercents.length > 0 ? avg(gradedQuizPercents) : 0);
       const examAvg = (exams.length === 0) ? 100 : (gradedExamPercents.length > 0 ? avg(gradedExamPercents) : 0);
-      const overallAverage = Math.round((0.15 * assignmentAvg) + (0.35 * quizAvg) + (0.50 * examAvg));
+      
+      // Step 1: Calculate Class Standing (60% of final grade)
+      // Class Standing = (Quiz × 0.45) + (Assignment × 0.15)
+      const classStanding = (quizAvg * 0.45) + (assignmentAvg * 0.15);
+      
+      // Step 2: Calculate Final Grade
+      // Final Grade = (Class Standing × 0.60) + (Exam × 0.40)
+      const overallAverage = Math.round((classStanding * 0.60) + (examAvg * 0.40));
       const gradedItems = [...gradedAssignmentPercents, ...gradedQuizPercents, ...gradedExamPercents];
 
       // Group by type

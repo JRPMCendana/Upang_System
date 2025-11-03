@@ -255,7 +255,7 @@ class DashboardService {
         })
       );
 
-      // Calculate average class grade using weighted formula (Exam 50%, Quiz 35%, Assignment 15%)
+      // Calculate average class grade using weighted formula: 60% Class Standing (15% Assignments + 45% Quizzes) + 40% Exams
       const assignmentPercents = assignmentSubmissions
         .filter(s => s.grade !== null && s.grade !== undefined && s.isSubmitted)
         .map(s => {
@@ -284,9 +284,14 @@ class DashboardService {
       const assignmentAvg = (assignments.length === 0 || assignmentPercents.length === 0) ? 100 : avg(assignmentPercents);
       const quizAvg = (quizzes.length === 0 || quizPercents.length === 0) ? 100 : avg(quizPercents);
       const examAvg = (exams.length === 0 || examPercents.length === 0) ? 100 : avg(examPercents);
-      // For consistency with Grade Management, reuse the same computation from GradeService
-      // (This also guards against any future divergence.)
-      let averageClassGrade = Math.round((0.15 * assignmentAvg) + (0.35 * quizAvg) + (0.50 * examAvg));
+      
+      // Step 1: Calculate Class Standing (60% of final grade)
+      // Class Standing = (Quiz × 0.45) + (Assignment × 0.15)
+      const classStanding = (quizAvg * 0.45) + (assignmentAvg * 0.15);
+      
+      // Step 2: Calculate Final Grade
+      // Final Grade = (Class Standing × 0.60) + (Exam × 0.40)
+      let averageClassGrade = Math.round((classStanding * 0.60) + (examAvg * 0.40));
       try {
         const gradeStats = await GradeService.getTeacherGradeStats(teacherId);
         if (gradeStats && typeof gradeStats.classAverage === 'number') {
