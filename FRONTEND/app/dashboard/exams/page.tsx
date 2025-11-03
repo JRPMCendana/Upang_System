@@ -239,7 +239,7 @@ export default function ExamsPage() {
                         {/* Left-side action (student submitted) */}
                         <div>
                           {isStudent && submissionByExamId[exam._id] && (
-                            <Button variant="outline" size="sm" className="gap-1" onClick={() => { const f = submissionByExamId[exam._id]; setViewerFileId(f.fileId); setViewerFileName(f.fileName || "Submitted file"); setViewerFileType(f.fileType); setViewerOpen(true); }}>
+                            <Button variant="outline" size="sm" className="gap-1" onClick={() => { const f = submissionByExamId[exam._id]; setViewerFileId(f.fileId || ""); setViewerFileName(f.fileName || "Submitted file"); setViewerFileType(f.fileType); setViewerOpen(true); }}>
                               <FileImage className="w-4 h-4" /> View Screenshot
                             </Button>
                           )}
@@ -261,8 +261,7 @@ export default function ExamsPage() {
                         </div>
                       </div>
                     </Card>
-                  )
-                })}
+                  ))}
                 </div>
               )}
             </div>
