@@ -414,6 +414,64 @@ class QuizSubmissionService {
       };
     }
   }
+
+  static async getAllSubmissions(page = 1, limit = 10) {
+    try {
+      const pageNum = parseInt(page, 10);
+      const limitNum = parseInt(limit, 10);
+
+      if (pageNum < 1) {
+        throw {
+          status: 400,
+          message: 'Page must be greater than 0'
+        };
+      }
+
+      if (limitNum < 1 || limitNum > 100) {
+        throw {
+          status: 400,
+          message: 'Limit must be between 1 and 100'
+        };
+      }
+
+      const skip = (pageNum - 1) * limitNum;
+
+      const [submissions, total] = await Promise.all([
+        QuizSubmission.find({ isSubmitted: true })
+          .populate('quiz', 'title description assignedBy')
+          .populate('student', 'firstName lastName email username')
+          .populate('quiz.assignedBy', 'firstName lastName email username')
+          .sort({ submittedAt: -1 })
+          .skip(skip)
+          .limit(limitNum),
+        QuizSubmission.countDocuments({ isSubmitted: true })
+      ]);
+
+      const totalPages = Math.ceil(total / limitNum);
+
+      return {
+        submissions,
+        pagination: {
+          currentPage: pageNum,
+          limit: limitNum,
+          totalItems: total,
+          totalPages,
+          hasNextPage: pageNum < totalPages,
+          hasPrevPage: pageNum > 1
+        }
+      };
+    } catch (error) {
+      if (error.status) {
+        throw error;
+      }
+
+      const dbError = DbUtils.handleError(error);
+      throw {
+        status: dbError.status,
+        message: dbError.message || 'Failed to get submissions'
+      };
+    }
+  }
 }
 
 module.exports = QuizSubmissionService;
