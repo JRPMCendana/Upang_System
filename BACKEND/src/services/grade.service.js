@@ -376,32 +376,43 @@ class GradeService {
 
       // Calculate percentage grades (grade / maxScore * 100)
       const percentageGrades = [];
+      const assignmentPercents = [];
+      const quizPercents = [];
+      const examPercents = [];
       
       gradedAssignmentSubs.forEach(sub => {
         const assignment = assignments.find(a => a._id.toString() === sub.assignment._id.toString());
         const maxScore = assignment?.totalPoints || 100; // Default to 100 if not set
         const percentage = (sub.grade / maxScore) * 100;
-        percentageGrades.push(Math.round(percentage * 10) / 10); // Round to 1 decimal
+        const pct = Math.round(percentage * 10) / 10;
+        percentageGrades.push(pct); // Round to 1 decimal
+        assignmentPercents.push(pct);
       });
 
       gradedQuizSubs.forEach(sub => {
         const quiz = quizzes.find(q => q._id.toString() === sub.quiz._id.toString());
         const maxScore = quiz?.totalPoints || 100; // Default to 100 if not set
         const percentage = (sub.grade / maxScore) * 100;
-        percentageGrades.push(Math.round(percentage * 10) / 10); // Round to 1 decimal
+        const pct = Math.round(percentage * 10) / 10;
+        percentageGrades.push(pct); // Round to 1 decimal
+        quizPercents.push(pct);
       });
 
       gradedExamSubs.forEach(sub => {
         const exam = exams.find(e => e._id.toString() === sub.exam._id.toString());
         const maxScore = exam?.totalPoints || 100;
         const percentage = (sub.grade / maxScore) * 100;
-        percentageGrades.push(Math.round(percentage * 10) / 10);
+        const pct = Math.round(percentage * 10) / 10;
+        percentageGrades.push(pct);
+        examPercents.push(pct);
       });
 
-      // Calculate overall average from percentage grades
-      const overallAverage = percentageGrades.length > 0
-        ? Math.round(percentageGrades.reduce((sum, grade) => sum + grade, 0) / percentageGrades.length)
-        : 0;
+      // Calculate overall average using weights: Exam 50%, Quiz 35%, Assignment 15%
+      const avg = (arr) => arr.length > 0 ? (arr.reduce((s, g) => s + g, 0) / arr.length) : 0;
+      const aAvg = (assignments.length === 0 || assignmentPercents.length === 0) ? 100 : avg(assignmentPercents);
+      const qAvg = (quizzes.length === 0 || quizPercents.length === 0) ? 100 : avg(quizPercents);
+      const eAvg = (exams.length === 0 || examPercents.length === 0) ? 100 : avg(examPercents);
+      const overallAverage = Math.round((0.15 * aAvg) + (0.35 * qAvg) + (0.50 * eAvg));
 
       // Get highest grade (as percentage)
       const highestGrade = percentageGrades.length > 0 ? Math.max(...percentageGrades) : 0;
