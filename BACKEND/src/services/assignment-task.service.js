@@ -7,7 +7,7 @@ const { deleteFileFromGridFS } = require('../middleware/upload.middleware');
 class AssignmentTaskService {
   static async createAssignment(teacherId, assignmentData) {
     try {
-      const { title, description, dueDate, studentIds, document, documentName, documentType } = assignmentData;
+      const { title, description, dueDate, maxGrade, studentIds, document, documentName, documentType } = assignmentData;
 
       if (!title || !description || !dueDate) {
         throw {
@@ -77,6 +77,7 @@ class AssignmentTaskService {
         title,
         description,
         dueDate: due,
+        maxGrade: maxGrade || 100,
         assignedBy: teacherId,
         assignedTo: studentIds,
         document: document || null,
@@ -315,7 +316,7 @@ class AssignmentTaskService {
 
   static async updateAssignment(assignmentId, teacherId, updateData) {
     try {
-      const { title, description, dueDate, studentIds, document, documentName, documentType } = updateData;
+      const { title, description, dueDate, maxGrade, studentIds, document, documentName, documentType } = updateData;
 
       const assignment = await Assignment.findById(assignmentId);
       if (!assignment) {
@@ -362,6 +363,16 @@ class AssignmentTaskService {
           };
         }
         assignment.dueDate = due;
+      }
+
+      if (maxGrade !== undefined) {
+        if (maxGrade < 0 || maxGrade > 1000) {
+          throw {
+            status: 400,
+            message: 'Max grade must be between 0 and 1000'
+          };
+        }
+        assignment.maxGrade = maxGrade;
       }
 
       if (studentIds !== undefined) {

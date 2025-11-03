@@ -5,7 +5,13 @@ class AssignmentTaskController {
   static async createAssignment(req, res, next) {
     try {
       const teacherId = req.user.id;
-      const { title, description, dueDate, studentIds } = req.body;
+      const { title, description, dueDate, maxGrade, studentIds } = req.body;
+      
+      // Parse maxGrade if it's a string (from form-data)
+      let parsedMaxGrade = maxGrade;
+      if (maxGrade && typeof maxGrade === 'string') {
+        parsedMaxGrade = parseInt(maxGrade, 10);
+      }
       
       // Parse studentIds if it's a JSON string (from form-data)
       let parsedStudentIds = studentIds;
@@ -44,6 +50,7 @@ class AssignmentTaskController {
         title,
         description,
         dueDate,
+        maxGrade: parsedMaxGrade,
         studentIds: parsedStudentIds,
         document,
         documentName,
@@ -120,7 +127,13 @@ class AssignmentTaskController {
     try {
       const { assignmentId } = req.params;
       const teacherId = req.user.id;
-      const { title, description, dueDate, studentIds } = req.body;
+      const { title, description, dueDate, maxGrade, studentIds } = req.body;
+      
+      // Parse maxGrade if it's a string (from form-data)
+      let parsedMaxGrade = maxGrade;
+      if (maxGrade && typeof maxGrade === 'string') {
+        parsedMaxGrade = parseInt(maxGrade, 10);
+      }
       
       // Handle file upload to GridFS
       let document = undefined;
@@ -151,6 +164,7 @@ class AssignmentTaskController {
         title,
         description,
         dueDate,
+        maxGrade: parsedMaxGrade,
         studentIds,
         document,
         documentName,

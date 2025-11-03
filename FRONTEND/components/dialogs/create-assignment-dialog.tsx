@@ -27,7 +27,7 @@ export function CreateAssignmentDialog({ open, onOpenChange, onSubmit, loading }
     description: "",
     instructions: "",
     dueDate: "",
-    totalPoints: 100,
+    maxGrade: 100,
     submissionType: "file",
     allowLateSubmission: false,
     studentIds: [],
@@ -90,7 +90,7 @@ export function CreateAssignmentDialog({ open, onOpenChange, onSubmit, loading }
       description: "",
       instructions: "",
       dueDate: "",
-      totalPoints: 100,
+      maxGrade: 100,
       submissionType: "file",
       allowLateSubmission: false,
       studentIds: [],
@@ -158,13 +158,14 @@ export function CreateAssignmentDialog({ open, onOpenChange, onSubmit, loading }
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="totalPoints">Total Points</Label>
+              <Label htmlFor="maxGrade">Maximum Grade</Label>
               <Input
-                id="totalPoints"
+                id="maxGrade"
                 type="number"
                 min="0"
-                value={formData.totalPoints}
-                onChange={(e) => setFormData({ ...formData, totalPoints: parseInt(e.target.value) || 0 })}
+                max="1000"
+                value={formData.maxGrade}
+                onChange={(e) => setFormData({ ...formData, maxGrade: parseInt(e.target.value) || 0 })}
               />
             </div>
           </div>

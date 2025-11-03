@@ -70,7 +70,7 @@ class AssignmentService {
     formData.append("studentIds", JSON.stringify(data.studentIds))
 
     if (data.instructions) formData.append("instructions", data.instructions)
-    if (data.totalPoints) formData.append("totalPoints", data.totalPoints.toString())
+    if (data.maxGrade) formData.append("maxGrade", data.maxGrade.toString())
     if (data.submissionType) formData.append("submissionType", data.submissionType)
     if (data.allowLateSubmission !== undefined)
       formData.append("allowLateSubmission", data.allowLateSubmission.toString())
@@ -115,7 +115,7 @@ class AssignmentService {
     if (data.description) formData.append("description", data.description)
     if (data.instructions) formData.append("instructions", data.instructions)
     if (data.dueDate) formData.append("dueDate", data.dueDate)
-    if (data.totalPoints) formData.append("totalPoints", data.totalPoints.toString())
+    if (data.maxGrade !== undefined) formData.append("maxGrade", data.maxGrade.toString())
     if (data.status) formData.append("status", data.status)
     if (data.allowLateSubmission !== undefined)
       formData.append("allowLateSubmission", data.allowLateSubmission.toString())

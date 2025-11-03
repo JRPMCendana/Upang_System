@@ -16,6 +16,12 @@ const assignmentSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
+  maxGrade: {
+    type: Number,
+    default: 100,
+    min: 0,
+    max: 1000
+  },
   assignedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

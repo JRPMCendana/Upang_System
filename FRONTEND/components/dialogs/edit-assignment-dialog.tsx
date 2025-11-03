@@ -32,7 +32,7 @@ export function EditAssignmentDialog({
     description: "",
     instructions: "",
     dueDate: "",
-    totalPoints: 100,
+    maxGrade: 100,
   })
   const [file, setFile] = useState<File | null>(null)
 
@@ -67,7 +67,7 @@ export function EditAssignmentDialog({
         description: assignment.description || "",
         instructions: assignment.instructions || "",
         dueDate: formattedDate,
-        totalPoints: assignment.totalPoints || 100,
+        maxGrade: assignment.maxGrade || 100,
       })
 
       // Set selected students from assignment
@@ -179,13 +179,14 @@ export function EditAssignmentDialog({
               </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="totalPoints">Total Points</Label>
+              <Label htmlFor="maxGrade">Maximum Grade</Label>
               <Input
-                id="totalPoints"
+                id="maxGrade"
                 type="number"
                 min="0"
-                value={formData.totalPoints}
-                onChange={(e) => setFormData({ ...formData, totalPoints: parseInt(e.target.value) || 0 })}
+                max="1000"
+                value={formData.maxGrade}
+                onChange={(e) => setFormData({ ...formData, maxGrade: parseInt(e.target.value) || 0 })}
               />
             </div>
           </div>
