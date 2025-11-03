@@ -195,8 +195,15 @@ export function EditUserForm({ open, onOpenChange, onSuccess, user }: EditUserFo
       lastName: 25,
     }
     
+    let processedValue = value
+    
+    // Only allow letters and spaces for first and last name
+    if (field === "firstName" || field === "lastName") {
+      processedValue = value.replace(/[^a-zA-Z\s]/g, "")
+    }
+    
     const limit = limits[field]
-    const limitedValue = limit && value.length > limit ? value.slice(0, limit) : value
+    const limitedValue = limit && processedValue.length > limit ? processedValue.slice(0, limit) : processedValue
     
     setFormData((prev) => ({ ...prev, [field]: limitedValue }))
     if (errors[field]) {
