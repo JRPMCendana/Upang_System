@@ -5,6 +5,8 @@ export interface Quiz {
   _id: string
   title: string
   description: string
+  quizLink?: string
+  dueDate?: string
   assignedBy: {
     _id: string
     firstName: string
@@ -72,12 +74,17 @@ export interface QuizSubmission {
 export interface CreateQuizData {
   title: string
   description: string
+  quizLink?: string
+  dueDate?: string
   studentIds: string[]
 }
 
 export interface UpdateQuizData {
   title?: string
   description?: string
+  quizLink?: string
+  dueDate?: string
+  studentIds?: string[]
   status?: "active" | "inactive"
 }
 

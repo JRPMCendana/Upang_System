@@ -356,6 +356,38 @@ export function useQuizzes(options: UseQuizzesOptions = {}) {
     await fetchQuizzes()
   }, [fetchQuizzes])
 
+  // Get quiz submissions (wrapper for submissions page)
+  const getQuizSubmissions = useCallback(async (quizId: string) => {
+    setLoading(true)
+    try {
+      // Fetch both quiz details and submissions
+      const [quizResponse, submissionsData] = await Promise.all([
+        quizService.getQuizById(quizId),
+        quizService.getSubmissionsByQuiz(quizId, 1, 100)
+      ])
+      
+      return {
+        quiz: quizResponse.data,
+        submissions: submissionsData
+      }
+    } catch (error: any) {
+      console.error("Error fetching quiz submissions:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to fetch submissions",
+        variant: "destructive",
+      })
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }, [toast])
+
+  // Grade quiz submission (wrapper with better naming)
+  const gradeQuizSubmission = useCallback(async (submissionId: string, gradeData: GradeQuizData) => {
+    return await gradeSubmission(submissionId, gradeData)
+  }, [gradeSubmission])
+
   // Auto-fetch on mount if enabled
   useEffect(() => {
     if (autoFetch) {
@@ -382,7 +414,9 @@ export function useQuizzes(options: UseQuizzesOptions = {}) {
     replaceSubmission,
     getMySubmission,
     getSubmissionsByQuiz,
+    getQuizSubmissions,
     gradeSubmission,
+    gradeQuizSubmission,
     downloadQuizFile,
     downloadSubmissionFile,
     refreshQuizzes,

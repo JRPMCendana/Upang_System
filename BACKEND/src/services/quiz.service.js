@@ -6,7 +6,7 @@ const { deleteFileFromGridFS } = require('../middleware/upload.middleware');
 class QuizService {
   static async createQuiz(teacherId, quizData) {
     try {
-      const { title, description, studentIds, document, documentName, documentType } = quizData;
+      const { title, description, quizLink, dueDate, studentIds, document, documentName, documentType } = quizData;
 
       if (!title || !description) {
         throw {
@@ -66,6 +66,8 @@ class QuizService {
       const quiz = await Quiz.create({
         title,
         description,
+        quizLink: quizLink || null,
+        dueDate: dueDate ? new Date(dueDate) : null,
         assignedBy: teacherId,
         assignedTo: studentIds,
         document: document || null,
@@ -254,7 +256,7 @@ class QuizService {
 
   static async updateQuiz(quizId, teacherId, updateData) {
     try {
-      const { title, description, studentIds, document, documentName, documentType } = updateData;
+      const { title, description, quizLink, dueDate, studentIds, document, documentName, documentType } = updateData;
 
       const quiz = await Quiz.findById(quizId);
       if (!quiz) {
@@ -315,6 +317,14 @@ class QuizService {
         }
 
         quiz.assignedTo = studentIds;
+      }
+
+      if (quizLink !== undefined) {
+        quiz.quizLink = quizLink;
+      }
+
+      if (dueDate !== undefined) {
+        quiz.dueDate = dueDate ? new Date(dueDate) : null;
       }
 
       if (document !== undefined) {

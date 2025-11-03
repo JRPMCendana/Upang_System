@@ -61,6 +61,14 @@ class QuizService {
     formData.append("description", data.description)
     formData.append("studentIds", JSON.stringify(data.studentIds))
 
+    if (data.quizLink) {
+      formData.append("quizLink", data.quizLink)
+    }
+
+    if (data.dueDate) {
+      formData.append("dueDate", data.dueDate)
+    }
+
     if (file) {
       formData.append("file", file)
     }
@@ -95,6 +103,8 @@ class QuizService {
     if (data.title) formData.append("title", data.title)
     if (data.description) formData.append("description", data.description)
     if (data.status) formData.append("status", data.status)
+    if (data.quizLink !== undefined) formData.append("quizLink", data.quizLink || "")
+    if (data.dueDate !== undefined) formData.append("dueDate", data.dueDate || "")
 
     if (file) {
       formData.append("file", file)
