@@ -9,6 +9,7 @@ const studentRoutes = require('./student.routes');
 const assignmentTaskRoutes = require('./assignment-task.routes');
 const submissionRoutes = require('./submission.routes');
 const quizRoutes = require('./quiz.routes');
+const dashboardRoutes = require('./dashboard.routes');
 
 router.use('/', homeRoutes);
 router.use('/api', healthRoutes);
@@ -19,6 +20,7 @@ router.use('/api/student', studentRoutes);
 router.use('/api/assignments', assignmentTaskRoutes);
 router.use('/api/submissions', submissionRoutes);
 router.use('/api/quizzes', quizRoutes);
+router.use('/api/dashboard', dashboardRoutes);
 
 module.exports = router;
 
