@@ -429,9 +429,9 @@ class GradeService {
       ];
       const highestGradeItem = allGradeItems.find(item => item.grade === highestGrade);
 
-      // Count completed
-      const completed = gradedAssignmentSubs.length + gradedQuizSubs.length;
-      const total = assignments.length + quizzes.length;
+      // Count completed (include exams)
+      const completed = gradedAssignmentSubs.length + gradedQuizSubs.length + gradedExamSubs.length;
+      const total = assignments.length + quizzes.length + exams.length;
 
       // Grade trend over time (group by month) - use percentage grades
       const gradeTrend = [];
