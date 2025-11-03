@@ -29,6 +29,7 @@ class ExamSubmissionService {
           submittedDocument: fileId.toString(),
           submittedDocumentName: file.originalname,
           submittedDocumentType: file.mimetype,
+          status: 'submitted',
         },
         { new: true, upsert: true }
       );
@@ -88,6 +89,7 @@ class ExamSubmissionService {
       submission.grade = grade;
       submission.gradedAt = new Date();
       submission.feedback = feedback || null;
+      submission.status = 'graded';
       await submission.save();
       return submission;
     } catch (error) {
@@ -120,6 +122,7 @@ class ExamSubmissionService {
       submission.grade = null;
       submission.feedback = null;
       submission.gradedAt = null;
+      submission.status = 'pending';
       await submission.save();
       return submission;
     } catch (error) {

@@ -40,10 +40,8 @@ const assignmentSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'submitted', 'graded', 'late'],
+    enum: ['pending', 'submitted', 'graded', 'due'],
     default: 'pending'
-    // Note: For students, status is calculated dynamically based on submission state
-    // This field is kept for backwards compatibility but not actively used
   }
 }, {
   timestamps: true,

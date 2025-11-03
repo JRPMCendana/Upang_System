@@ -48,6 +48,43 @@ class ExamController {
       res.status(200).json({ success: true, data: result.exams, pagination: result.pagination });
     } catch (error) { next(error); }
   }
+
+  static async updateExam(req, res, next) {
+    try {
+      const teacherId = req.user.id;
+      const { examId } = req.params;
+      const { title, description, dueDate, totalPoints } = req.body;
+
+      let document = undefined, documentName = undefined, documentType = undefined;
+      if (req.file) {
+        // file already uploaded in service, but pass through
+        document = req.file;
+        documentName = req.file.originalname;
+        documentType = req.file.mimetype;
+      }
+
+      const result = await ExamService.updateExam(teacherId, examId, {
+        title,
+        description,
+        dueDate,
+        totalPoints,
+        document,
+        documentName,
+        documentType,
+      });
+
+      res.status(200).json({ success: true, message: 'Exam updated successfully', data: result });
+    } catch (error) { next(error); }
+  }
+
+  static async deleteExam(req, res, next) {
+    try {
+      const teacherId = req.user.id;
+      const { examId } = req.params;
+      await ExamService.deleteExam(teacherId, examId);
+      res.status(200).json({ success: true, message: 'Exam deleted successfully' });
+    } catch (error) { next(error); }
+  }
 }
 
 module.exports = ExamController;

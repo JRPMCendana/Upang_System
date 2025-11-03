@@ -66,22 +66,20 @@ async function startServer() {
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {
-  console.error('\nUnhandled Promise Rejection:', err.message);
-  
+  // Check if it's a GridFS or Mongo file-not-found deletion error - don't crash for these
+  const errorMessage = String(err && (err.message || err) || '');
+  const isFileNotFoundError = errorMessage.includes('File not found');
+
+  if (isFileNotFoundError) {
+    return; // Silently ignore GridFS file-not-found deletes
+  }
+
+  console.error('\nUnhandled Promise Rejection:', err && err.message ? err.message : String(err));
   if (config.nodeEnv === 'development') {
     console.error('Stack Trace:');
-    console.error(err.stack);
+    console.error(err && err.stack ? err.stack : '');
   }
-  
-  // Check if it's a GridFS file not found error - don't crash for these
-  const errorMessage = String(err.message || err || '');
-  const isFileNotFoundError = errorMessage.includes('File not found') && errorMessage.includes('GridFS');
-  
-  if (isFileNotFoundError) {
-    console.log('Note: This is a non-critical GridFS file deletion error. Continuing...');
-    return; // Don't crash the server
-  }
-  
+
   // Don't exit immediately - give time for cleanup
   setTimeout(() => {
     console.log('\nShutting down due to unhandled rejection...');

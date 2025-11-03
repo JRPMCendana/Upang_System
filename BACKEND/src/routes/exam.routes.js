@@ -7,8 +7,9 @@ const authMiddleware = require('../middleware/auth.middleware');
 const { authorize } = require('../middleware/auth.middleware');
 const { upload, quizSubmissionUpload } = require('../middleware/upload.middleware');
 
-// Teacher routes - create exam, list
+// Teacher routes - create exam, update, list
 router.post('/', authMiddleware, authorize('teacher'), upload.single('document'), ExamController.createExam);
+router.put('/:examId', authMiddleware, authorize('teacher'), upload.single('document'), ExamController.updateExam);
 router.get('/', authMiddleware, authorize('teacher', 'student'), ExamController.getExams);
 
 // Student routes - submit exam (allow images/PDF/DOCX)

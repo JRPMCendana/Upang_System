@@ -143,14 +143,18 @@ const deleteFileFromGridFS = async (fileId) => {
           // Check if it's a "file not found" error
           const errorMessage = String(error.message || error || '');
           if (errorMessage.includes('File not found')) {
-            console.log(`File ${fileId} not found in GridFS, treating as already deleted`);
+            if (process.env.NODE_ENV === 'development') {
+              console.debug(`File ${fileId} not found in GridFS, treating as already deleted`);
+            }
             resolve(); // Success - file doesn't exist anyway
           } else {
             console.error(`Error deleting file ${fileId}:`, error);
             reject(error);
           }
         } else {
-          console.log(`Successfully deleted file ${fileId} from GridFS`);
+          if (process.env.NODE_ENV === 'development') {
+            console.debug(`Successfully deleted file ${fileId} from GridFS`);
+          }
           resolve();
         }
       });
