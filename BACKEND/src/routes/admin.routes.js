@@ -23,5 +23,8 @@ router.get('/assignment-submissions', authMiddleware, authorize('administrator')
 
 router.get('/quiz-submissions', authMiddleware, authorize('administrator'), AdminController.getAllQuizSubmissions);
 
+// Admin statistics
+router.get('/statistics', authMiddleware, authorize('administrator'), AdminController.getSystemStatistics);
+
 module.exports = router;
 

@@ -3,6 +3,7 @@ const QuizService = require('../services/quiz.service');
 const AssignmentTaskService = require('../services/assignment-task.service');
 const SubmissionService = require('../services/submission.service');
 const QuizSubmissionService = require('../services/quiz-submission.service');
+const AdminStatsService = require('../services/admin-stats.service');
 
 class AdminController {
   static async createAccount(req, res, next) {
@@ -206,6 +207,20 @@ class AdminController {
         pagination: result.pagination
       });
     } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getSystemStatistics(req, res, next) {
+    try {
+      const stats = await AdminStatsService.getSystemStatistics();
+
+      res.status(200).json({
+        success: true,
+        data: stats
+      });
+    } catch (error) {
+      console.error('Error in getSystemStatistics:', error);
       next(error);
     }
   }

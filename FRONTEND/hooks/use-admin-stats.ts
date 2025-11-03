@@ -3,6 +3,7 @@
 
 import { useState, useCallback, useEffect } from "react"
 import { userService } from "@/services/user-service"
+import { adminService } from "@/services/admin-service"
 import type { User } from "@/types/user.types"
 import { useToast } from "@/hooks/use-toast"
 
@@ -14,11 +15,16 @@ interface UseAdminStatsReturn {
   // Stats state
   totalStudents: number
   totalTeachers: number
+  filesUploaded: number
+  totalSubmissions: number
+  averageScore: number
   statsLoading: boolean
+  systemStatsLoading: boolean
   
   // Actions
   fetchRecentUsers: () => Promise<void>
   fetchUserStats: () => Promise<void>
+  fetchSystemStats: () => Promise<void>
   refreshAll: () => Promise<void>
 }
 
@@ -34,7 +40,11 @@ export function useAdminStats(): UseAdminStatsReturn {
   const [recentUsersLoading, setRecentUsersLoading] = useState(true)
   const [totalStudents, setTotalStudents] = useState(0)
   const [totalTeachers, setTotalTeachers] = useState(0)
+  const [filesUploaded, setFilesUploaded] = useState(0)
+  const [totalSubmissions, setTotalSubmissions] = useState(0)
+  const [averageScore, setAverageScore] = useState(0)
   const [statsLoading, setStatsLoading] = useState(true)
+  const [systemStatsLoading, setSystemStatsLoading] = useState(true)
 
   /**
    * Fetch recent users (most recently created active users)
@@ -85,11 +95,35 @@ export function useAdminStats(): UseAdminStatsReturn {
   }, [toast])
 
   /**
+   * Fetch system statistics (files, submissions, average score)
+   */
+  const fetchSystemStats = useCallback(async () => {
+    try {
+      setSystemStatsLoading(true)
+      
+      const stats = await adminService.getSystemStatistics()
+      
+      setFilesUploaded(stats.filesUploaded)
+      setTotalSubmissions(stats.totalSubmissions)
+      setAverageScore(stats.averageScore)
+    } catch (error: any) {
+      console.error("Error fetching system stats:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to load system statistics.",
+        variant: "destructive",
+      })
+    } finally {
+      setSystemStatsLoading(false)
+    }
+  }, [toast])
+
+  /**
    * Refresh all data (recent users and stats)
    */
   const refreshAll = useCallback(async () => {
-    await Promise.all([fetchRecentUsers(), fetchUserStats()])
-  }, [fetchRecentUsers, fetchUserStats])
+    await Promise.all([fetchRecentUsers(), fetchUserStats(), fetchSystemStats()])
+  }, [fetchRecentUsers, fetchUserStats, fetchSystemStats])
 
   return {
     // State
@@ -97,11 +131,16 @@ export function useAdminStats(): UseAdminStatsReturn {
     recentUsersLoading,
     totalStudents,
     totalTeachers,
+    filesUploaded,
+    totalSubmissions,
+    averageScore,
     statsLoading,
+    systemStatsLoading,
     
     // Actions
     fetchRecentUsers,
     fetchUserStats,
+    fetchSystemStats,
     refreshAll,
   }
 }
