@@ -47,6 +47,12 @@ const navItems: NavItem[] = [
     roles: ["student", "teacher"],
   },
   {
+    label: "Exams",
+    href: "/dashboard/exams",
+    icon: <ClipboardList className="w-5 h-5" />,
+    roles: ["student", "teacher"],
+  },
+  {
     label: "Grades",
     href: "/dashboard/grades",
     icon: <BarChart3 className="w-5 h-5" />,
