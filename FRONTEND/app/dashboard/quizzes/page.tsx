@@ -6,24 +6,43 @@ import { Header } from "@/components/dashboard/header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { ClipboardList, Search, Plus, Clock, MoreVertical, FileText, Download } from "lucide-react"
+import { ClipboardList, Search, Plus, Clock, MoreVertical, FileText, Download, Edit, Trash, ExternalLink } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { useQuizzes } from "@/hooks/use-quizzes"
+import { CreateQuizDialog } from "@/components/dialogs/create-quiz-dialog"
+import { EditQuizDialog } from "@/components/dialogs/edit-quiz-dialog"
+import { SubmitQuizDialog } from "@/components/dialogs/submit-quiz-dialog"
+import type { Quiz } from "@/types/quiz.types"
 import { format } from "date-fns"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export default function QuizzesPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [submitDialogOpen, setSubmitDialogOpen] = useState(false)
+  const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null)
   
   // Use the quiz hook with auto-fetch enabled
   const { 
     quizzes, 
     loading, 
     initialLoading,
+    createQuiz,
+    updateQuiz,
+    deleteQuiz,
+    submitQuiz,
     downloadQuizFile,
+    fetchQuizzes,
   } = useQuizzes({ autoFetch: true })
 
   useEffect(() => {
@@ -46,6 +65,54 @@ export default function QuizzesPage() {
 
   if (!isAuthenticated) return null
 
+  // Event handlers
+  const handleCreateQuiz = async (data: any, file?: File) => {
+    const result = await createQuiz(data, file)
+    if (result) {
+      setCreateDialogOpen(false)
+    }
+  }
+
+  const handleUpdateQuiz = async (id: string, data: Partial<Quiz>, file?: File) => {
+    const result = await updateQuiz(id, data, file)
+    if (result) {
+      setEditDialogOpen(false)
+      setSelectedQuiz(null)
+    }
+  }
+
+  const handleDeleteQuiz = async (id: string) => {
+    if (confirm("Are you sure you want to delete this quiz?")) {
+      const result = await deleteQuiz(id)
+      if (result) {
+        fetchQuizzes()
+      }
+    }
+  }
+
+  const handleSubmitQuiz = async (quizId: string, file: File) => {
+    const result = await submitQuiz(quizId, file)
+    if (result) {
+      setSubmitDialogOpen(false)
+      setSelectedQuiz(null)
+      fetchQuizzes()
+    }
+  }
+
+  const handleOpenEditDialog = (quiz: Quiz) => {
+    setSelectedQuiz(quiz)
+    setEditDialogOpen(true)
+  }
+
+  const handleOpenSubmitDialog = (quiz: Quiz) => {
+    setSelectedQuiz(quiz)
+    setSubmitDialogOpen(true)
+  }
+
+  const handleViewSubmissions = (quizId: string) => {
+    router.push(`/dashboard/quizzes/${quizId}/submissions`)
+  }
+
   const filteredQuizzes = quizzes.filter(
     (quiz) =>
       quiz.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -67,7 +134,10 @@ export default function QuizzesPage() {
                 <p className="text-text-secondary">Create and manage interactive quizzes</p>
               </div>
               {user?.role === "teacher" && (
-                <Button className="bg-primary hover:bg-primary-dark gap-2">
+                <Button 
+                  className="bg-primary hover:bg-primary-dark gap-2"
+                  onClick={() => setCreateDialogOpen(true)}
+                >
                   <Plus className="w-5 h-5" />
                   Create Quiz
                 </Button>
@@ -107,6 +177,8 @@ export default function QuizzesPage() {
                   
                   const hasDocument = quiz.document && quiz.documentName
                   const createdDate = quiz.createdAt ? format(new Date(quiz.createdAt), 'MMM dd, yyyy') : 'N/A'
+                  const dueDate = quiz.dueDate ? format(new Date(quiz.dueDate), 'MMM dd, yyyy hh:mm a') : null
+                  const hasSubmitted = !!quiz.submission?.submittedAt
 
                   return (
                     <Card key={quiz._id} className="p-6 hover:shadow-lg transition">
@@ -121,18 +193,42 @@ export default function QuizzesPage() {
                               <Badge className={`${statusBadge.bg} ${statusBadge.text}`}>
                                 {statusBadge.label}
                               </Badge>
+                              {hasSubmitted && (
+                                <Badge className="bg-green-500/10 text-green-600">
+                                  Submitted
+                                </Badge>
+                              )}
                             </div>
                             {quiz.description && (
                               <p className="text-sm text-text-secondary mb-2 line-clamp-2">{quiz.description}</p>
                             )}
                           </div>
                         </div>
-                        <Button variant="ghost" size="icon" className="text-text-secondary shrink-0">
-                          <MoreVertical className="w-5 h-5" />
-                        </Button>
+                        {user?.role === "teacher" && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="text-text-secondary shrink-0">
+                                <MoreVertical className="w-5 h-5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleOpenEditDialog(quiz)}>
+                                <Edit className="w-4 h-4 mr-2" />
+                                Edit Quiz
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleDeleteQuiz(quiz._id)}
+                                className="text-destructive"
+                              >
+                                <Trash className="w-4 h-4 mr-2" />
+                                Delete Quiz
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </div>
 
-                      <div className="grid md:grid-cols-3 gap-4 py-4 border-y border-border">
+                      <div className="grid md:grid-cols-4 gap-4 py-4 border-y border-border">
                         <div>
                           <p className="text-xs text-text-secondary mb-1">Created By</p>
                           <p className="font-semibold text-sm">
@@ -142,6 +238,12 @@ export default function QuizzesPage() {
                         <div>
                           <p className="text-xs text-text-secondary mb-1">Created Date</p>
                           <p className="font-semibold text-sm">{createdDate}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-text-secondary mb-1">Due Date</p>
+                          <p className="font-semibold text-sm">
+                            {dueDate || 'No deadline'}
+                          </p>
                         </div>
                         <div>
                           <p className="text-xs text-text-secondary mb-1">Document</p>
@@ -159,6 +261,16 @@ export default function QuizzesPage() {
                       </div>
 
                       <div className="flex flex-wrap items-center gap-4 text-sm pt-4">
+                        {quiz.quizLink && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(quiz.quizLink, '_blank')}
+                          >
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            Take Quiz
+                          </Button>
+                        )}
                         {hasDocument && (
                           <Button
                             variant="outline"
@@ -166,23 +278,33 @@ export default function QuizzesPage() {
                             onClick={() => downloadQuizFile(quiz.document!, quiz.documentName!)}
                           >
                             <Download className="w-4 h-4 mr-2" />
-                            Download Quiz
+                            Download
                           </Button>
                         )}
-                        <Button 
-                          className="ml-auto" 
-                          variant={user?.role === "teacher" ? "outline" : "default"} 
-                          size="sm"
-                          onClick={() => {
-                            if (user?.role === "teacher") {
-                              router.push(`/dashboard/quizzes/${quiz._id}/submissions`)
-                            } else {
-                              // Student submit quiz action would go here
-                            }
-                          }}
-                        >
-                          {user?.role === "teacher" ? "View Submissions" : "Submit Quiz"}
-                        </Button>
+                        {user?.role === "teacher" ? (
+                          <Button 
+                            className="ml-auto" 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleViewSubmissions(quiz._id)}
+                          >
+                            View Submissions
+                            {quiz.submissionStats && (
+                              <Badge className="ml-2" variant="secondary">
+                                {quiz.submissionStats.submitted}/{quiz.submissionStats.total}
+                              </Badge>
+                            )}
+                          </Button>
+                        ) : (
+                          <Button 
+                            className="ml-auto" 
+                            size="sm"
+                            onClick={() => handleOpenSubmitDialog(quiz)}
+                            disabled={hasSubmitted}
+                          >
+                            {hasSubmitted ? "Already Submitted" : "Submit Quiz"}
+                          </Button>
+                        )}
                       </div>
                     </Card>
                   )
@@ -192,6 +314,31 @@ export default function QuizzesPage() {
           </div>
         </main>
       </div>
+
+      {/* Dialogs */}
+      <CreateQuizDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onSubmit={handleCreateQuiz}
+        loading={loading}
+      />
+
+      <EditQuizDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        quiz={selectedQuiz}
+        onSubmit={handleUpdateQuiz}
+        loading={loading}
+      />
+
+      <SubmitQuizDialog
+        open={submitDialogOpen}
+        onOpenChange={setSubmitDialogOpen}
+        quizId={selectedQuiz?._id || ""}
+        quizTitle={selectedQuiz?.title || ""}
+        onSubmit={handleSubmitQuiz}
+        loading={loading}
+      />
     </div>
   )
 }

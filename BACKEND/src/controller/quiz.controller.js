@@ -5,7 +5,7 @@ class QuizController {
   static async createQuiz(req, res, next) {
     try {
       const teacherId = req.user.id;
-      const { title, description, studentIds } = req.body;
+      const { title, description, quizLink, dueDate, studentIds } = req.body;
       
       // Parse studentIds if it's a JSON string (from form-data)
       let parsedStudentIds = studentIds;
@@ -43,6 +43,8 @@ class QuizController {
       const result = await QuizService.createQuiz(teacherId, {
         title,
         description,
+        quizLink,
+        dueDate,
         studentIds: parsedStudentIds,
         document,
         documentName,
@@ -116,7 +118,7 @@ class QuizController {
     try {
       const { quizId } = req.params;
       const teacherId = req.user.id;
-      const { title, description, studentIds } = req.body;
+      const { title, description, quizLink, dueDate, studentIds } = req.body;
       
       // Handle file upload to GridFS (optional)
       let document = undefined;
@@ -146,6 +148,8 @@ class QuizController {
       const result = await QuizService.updateQuiz(quizId, teacherId, {
         title,
         description,
+        quizLink,
+        dueDate,
         studentIds,
         document,
         documentName,

@@ -145,6 +145,7 @@ export default function QuizSubmissionsPage() {
     }
   }, [gradeFormData, fetchSubmissions, toast])
 
+  // Handle authentication and authorization
   useEffect(() => {
     if (authLoading) return
     if (!isAuthenticated) {
@@ -401,4 +402,3 @@ export default function QuizSubmissionsPage() {
     </div>
   )
 }
-
