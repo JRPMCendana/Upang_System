@@ -56,22 +56,36 @@ export interface TeacherActivitiesResponse {
 class TeacherActivityService {
   /**
    * Get all assignments created by teachers
+   * @param page - Page number
+   * @param limit - Items per page
+   * @param teacherId - Optional teacher ID to filter by
    */
-  async getAllAssignments(page: number = 1, limit: number = 10): Promise<any> {
+  async getAllAssignments(page: number = 1, limit: number = 10, teacherId?: string): Promise<any> {
+    const params: any = { page, limit }
+    if (teacherId) {
+      params.teacherId = teacherId
+    }
     const response = await apiClient.request<any>(
       "/admin/assignments",
-      { method: "GET", params: { page, limit } }
+      { method: "GET", params }
     )
     return response
   }
 
   /**
    * Get all quizzes created by teachers
+   * @param page - Page number
+   * @param limit - Items per page
+   * @param teacherId - Optional teacher ID to filter by
    */
-  async getAllQuizzes(page: number = 1, limit: number = 10): Promise<any> {
+  async getAllQuizzes(page: number = 1, limit: number = 10, teacherId?: string): Promise<any> {
+    const params: any = { page, limit }
+    if (teacherId) {
+      params.teacherId = teacherId
+    }
     const response = await apiClient.request<any>(
       "/admin/quizzes",
-      { method: "GET", params: { page, limit } }
+      { method: "GET", params }
     )
     return response
   }

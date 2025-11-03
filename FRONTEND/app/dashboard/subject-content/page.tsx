@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { useTeacherActivities } from "@/hooks/use-teacher-activities"
+import { useTeachers } from "@/hooks/use-teachers"
 import { formatRelativeTime } from "@/utils/date.utils"
 import {
   Select,
@@ -25,6 +26,7 @@ export default function SubjectContentPage() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
   const [typeFilter, setTypeFilter] = useState("all")
+  const [teacherFilter, setTeacherFilter] = useState("all")
 
   const {
     combinedActivities,
@@ -33,6 +35,8 @@ export default function SubjectContentPage() {
     quizzesTotal,
     fetchAll,
   } = useTeacherActivities()
+
+  const { teachers, loading: loadingTeachers } = useTeachers(true)
 
   useEffect(() => {
     if (authLoading) return
@@ -48,9 +52,10 @@ export default function SubjectContentPage() {
 
   useEffect(() => {
     if (isAuthenticated && user?.role === "admin") {
-      fetchAll()
+      const selectedTeacherId = teacherFilter === "all" ? undefined : teacherFilter
+      fetchAll(selectedTeacherId)
     }
-  }, [isAuthenticated, user, fetchAll])
+  }, [isAuthenticated, user, teacherFilter, fetchAll])
 
   if (authLoading || loading) {
     return (
@@ -122,7 +127,7 @@ export default function SubjectContentPage() {
 
             {/* Filters */}
             <Card className="p-4">
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid md:grid-cols-3 gap-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-3 w-5 h-5 text-text-secondary" />
                   <Input
@@ -140,6 +145,19 @@ export default function SubjectContentPage() {
                     <SelectItem value="all">All Types</SelectItem>
                     <SelectItem value="assignment">Assignments Only</SelectItem>
                     <SelectItem value="quiz">Quizzes Only</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={teacherFilter} onValueChange={setTeacherFilter} disabled={loadingTeachers}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by teacher" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Teachers</SelectItem>
+                    {teachers.map((teacher) => (
+                      <SelectItem key={teacher._id} value={teacher._id}>
+                        {teacher.firstName} {teacher.lastName}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -207,7 +225,7 @@ export default function SubjectContentPage() {
                               <Badge variant="outline">{activity.totalPoints} points</Badge>
                             )}
                             {activity.type === "assignment" && activity.maxGrade && (
-                              <Badge variant="outline">Max: {activity.maxGrade} points</Badge>
+                              <Badge variant="outline">{activity.maxGrade} points</Badge>
                             )}
                             {activity.documentName && (
                               <span className="text-xs">📎 {activity.documentName}</span>

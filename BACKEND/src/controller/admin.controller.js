@@ -148,8 +148,9 @@ class AdminController {
     try {
       const page = req.query.page || 1;
       const limit = req.query.limit || 10;
+      const teacherId = req.query.teacherId || null;
 
-      const result = await QuizService.getAllQuizzes(page, limit);
+      const result = await QuizService.getAllQuizzes(page, limit, teacherId);
 
       res.status(200).json({
         success: true,
@@ -165,8 +166,9 @@ class AdminController {
     try {
       const page = req.query.page || 1;
       const limit = req.query.limit || 10;
+      const teacherId = req.query.teacherId || null;
 
-      const result = await AssignmentTaskService.getAllAssignments(page, limit);
+      const result = await AssignmentTaskService.getAllAssignments(page, limit, teacherId);
 
       res.status(200).json({
         success: true,

@@ -15,9 +15,9 @@ interface UseTeacherActivitiesReturn {
   combinedActivities: any[]
 
   // Actions
-  fetchAssignments: (page?: number, limit?: number) => Promise<void>
-  fetchQuizzes: (page?: number, limit?: number) => Promise<void>
-  fetchAll: () => Promise<void>
+  fetchAssignments: (page?: number, limit?: number, teacherId?: string) => Promise<void>
+  fetchQuizzes: (page?: number, limit?: number, teacherId?: string) => Promise<void>
+  fetchAll: (teacherId?: string) => Promise<void>
 }
 
 /**
@@ -38,10 +38,10 @@ export function useTeacherActivities(): UseTeacherActivitiesReturn {
    * Fetch all assignments
    */
   const fetchAssignments = useCallback(
-    async (page: number = 1, limit: number = 100) => {
+    async (page: number = 1, limit: number = 100, teacherId?: string) => {
       try {
         setLoading(true)
-        const response = await teacherActivityService.getAllAssignments(page, limit)
+        const response = await teacherActivityService.getAllAssignments(page, limit, teacherId)
         setAssignments(response.data)
         setAssignmentsTotal(response.pagination.totalItems)
       } catch (error: any) {
@@ -63,10 +63,10 @@ export function useTeacherActivities(): UseTeacherActivitiesReturn {
    * Fetch all quizzes
    */
   const fetchQuizzes = useCallback(
-    async (page: number = 1, limit: number = 100) => {
+    async (page: number = 1, limit: number = 100, teacherId?: string) => {
       try {
         setLoading(true)
-        const response = await teacherActivityService.getAllQuizzes(page, limit)
+        const response = await teacherActivityService.getAllQuizzes(page, limit, teacherId)
         setQuizzes(response.data)
         setQuizzesTotal(response.pagination.totalItems)
       } catch (error: any) {
@@ -87,9 +87,9 @@ export function useTeacherActivities(): UseTeacherActivitiesReturn {
   /**
    * Fetch both assignments and quizzes
    */
-  const fetchAll = useCallback(async () => {
+  const fetchAll = useCallback(async (teacherId?: string) => {
     setLoading(true)
-    await Promise.all([fetchAssignments(), fetchQuizzes()])
+    await Promise.all([fetchAssignments(1, 100, teacherId), fetchQuizzes(1, 100, teacherId)])
     setLoading(false)
   }, [fetchAssignments, fetchQuizzes])
 

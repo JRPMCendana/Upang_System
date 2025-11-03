@@ -476,7 +476,7 @@ class AssignmentTaskService {
     }
   }
 
-  static async getAllAssignments(page = 1, limit = 10) {
+  static async getAllAssignments(page = 1, limit = 10, teacherId = null) {
     try {
       const pageNum = parseInt(page, 10);
       const limitNum = parseInt(limit, 10);
@@ -497,14 +497,20 @@ class AssignmentTaskService {
 
       const skip = (pageNum - 1) * limitNum;
 
+      // Build query filter
+      const filter = {};
+      if (teacherId) {
+        filter.assignedBy = teacherId;
+      }
+
       const [assignments, total] = await Promise.all([
-        Assignment.find({})
+        Assignment.find(filter)
           .populate('assignedBy', 'firstName lastName email username')
           .populate('assignedTo', 'firstName lastName email username')
           .sort({ createdAt: -1 })
           .skip(skip)
           .limit(limitNum),
-        Assignment.countDocuments({})
+        Assignment.countDocuments(filter)
       ]);
 
       const totalPages = Math.ceil(total / limitNum);

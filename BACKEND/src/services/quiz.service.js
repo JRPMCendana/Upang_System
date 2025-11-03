@@ -476,7 +476,7 @@ class QuizService {
     }
   }
 
-  static async getAllQuizzes(page = 1, limit = 10) {
+  static async getAllQuizzes(page = 1, limit = 10, teacherId = null) {
     try {
       const pageNum = parseInt(page, 10);
       const limitNum = parseInt(limit, 10);
@@ -497,14 +497,20 @@ class QuizService {
 
       const skip = (pageNum - 1) * limitNum;
 
+      // Build query filter
+      const filter = {};
+      if (teacherId) {
+        filter.assignedBy = teacherId;
+      }
+
       const [quizzes, total] = await Promise.all([
-        Quiz.find({})
+        Quiz.find(filter)
           .populate('assignedBy', 'firstName lastName email username')
           .populate('assignedTo', 'firstName lastName email username')
           .sort({ createdAt: -1 })
           .skip(skip)
           .limit(limitNum),
-        Quiz.countDocuments({})
+        Quiz.countDocuments(filter)
       ]);
 
       const totalPages = Math.ceil(total / limitNum);
