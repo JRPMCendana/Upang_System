@@ -6,32 +6,34 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Upload, X, FileText, Loader2, Search } from "lucide-react"
-import type { CreateAssignmentData } from "@/types/assignment.types"
+import type { Assignment } from "@/types/assignment.types"
 import { userService } from "@/services/user-service"
 import type { User } from "@/types/user.types"
 
-interface CreateAssignmentDialogProps {
+interface EditAssignmentDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSubmit: (data: CreateAssignmentData & { studentIds: string[] }, file?: File) => Promise<void>
+  assignment: Assignment | null
+  onSubmit: (id: string, data: Partial<Assignment>, file?: File) => Promise<void>
   loading?: boolean
 }
 
-export function CreateAssignmentDialog({ open, onOpenChange, onSubmit, loading }: CreateAssignmentDialogProps) {
-  const [formData, setFormData] = useState<CreateAssignmentData & { studentIds: string[] }>({
-    courseId: "",
+export function EditAssignmentDialog({ 
+  open, 
+  onOpenChange, 
+  assignment,
+  onSubmit, 
+  loading 
+}: EditAssignmentDialogProps) {
+  const [formData, setFormData] = useState({
     title: "",
     description: "",
     instructions: "",
     dueDate: "",
     totalPoints: 100,
-    submissionType: "file",
-    allowLateSubmission: false,
-    studentIds: [],
   })
   const [file, setFile] = useState<File | null>(null)
   const [students, setStudents] = useState<User[]>([])
@@ -39,12 +41,37 @@ export function CreateAssignmentDialog({ open, onOpenChange, onSubmit, loading }
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState("")
 
-  // Fetch students when dialog opens and reset state when it closes
+  // Populate form when assignment changes
+  useEffect(() => {
+    if (assignment && open) {
+      // Format the date for datetime-local input
+      const dueDate = new Date(assignment.dueDate)
+      const formattedDate = new Date(dueDate.getTime() - dueDate.getTimezoneOffset() * 60000)
+        .toISOString()
+        .slice(0, 16)
+
+      setFormData({
+        title: assignment.title,
+        description: assignment.description || "",
+        instructions: assignment.instructions || "",
+        dueDate: formattedDate,
+        totalPoints: assignment.totalPoints || 100,
+      })
+
+      // Set selected students
+      if (assignment.assignedTo) {
+        const studentIds = Array.isArray(assignment.assignedTo)
+          ? assignment.assignedTo.map((s: string | { _id: string }) => typeof s === 'string' ? s : s._id)
+          : []
+        setSelectedStudentIds(studentIds)
+      }
+    }
+  }, [assignment, open])
+
+  // Fetch students when dialog opens
   useEffect(() => {
     if (!open) {
-      // Reset state when dialog closes
       setStudents([])
-      setSelectedStudentIds([])
       setSearchQuery("")
       return
     }
@@ -114,36 +141,27 @@ export function CreateAssignmentDialog({ open, onOpenChange, onSubmit, loading }
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Add selected student IDs to form data
-    const dataWithStudents = {
+    if (!assignment) return
+
+    const updateData = {
       ...formData,
       studentIds: selectedStudentIds,
     }
     
-    await onSubmit(dataWithStudents, file || undefined)
+    await onSubmit(assignment._id, updateData, file || undefined)
     
-    // Reset form
-    setFormData({
-      courseId: "",
-      title: "",
-      description: "",
-      instructions: "",
-      dueDate: "",
-      totalPoints: 100,
-      submissionType: "file",
-      allowLateSubmission: false,
-      studentIds: [],
-    })
+    // Reset file state
     setFile(null)
-    setSelectedStudentIds([])
   }
+
+  if (!assignment) return null
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create New Assignment</DialogTitle>
-          <p className="text-sm text-text-secondary">Fill in the details to create a new assignment for your students</p>
+          <DialogTitle>Edit Assignment</DialogTitle>
+          <p className="text-sm text-text-secondary">Update assignment details and extend deadlines</p>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -195,6 +213,9 @@ export function CreateAssignmentDialog({ open, onOpenChange, onSubmit, loading }
                 onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
                 required
               />
+              <p className="text-xs text-text-secondary">
+                Current: {new Date(assignment.dueDate).toLocaleString()}
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="totalPoints">Total Points</Label>
@@ -206,18 +227,6 @@ export function CreateAssignmentDialog({ open, onOpenChange, onSubmit, loading }
                 onChange={(e) => setFormData({ ...formData, totalPoints: parseInt(e.target.value) || 0 })}
               />
             </div>
-          </div>
-
-          {/* Allow Late Submission */}
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="allowLateSubmission"
-              checked={formData.allowLateSubmission}
-              onCheckedChange={(checked) => setFormData({ ...formData, allowLateSubmission: checked as boolean })}
-            />
-            <Label htmlFor="allowLateSubmission" className="cursor-pointer">
-              Allow late submissions
-            </Label>
           </div>
 
           {/* Student Selection */}
@@ -245,7 +254,6 @@ export function CreateAssignmentDialog({ open, onOpenChange, onSubmit, loading }
             ) : students.length === 0 ? (
               <div className="border border-border rounded-lg p-4 text-center">
                 <p className="text-sm text-text-secondary">No students available</p>
-                <p className="text-xs text-text-secondary mt-1">Students must be assigned to you first</p>
               </div>
             ) : (
               <>
@@ -317,7 +325,18 @@ export function CreateAssignmentDialog({ open, onOpenChange, onSubmit, loading }
 
           {/* File Attachment */}
           <div className="space-y-2">
-            <Label>Attachment (Optional)</Label>
+            <Label>Update Attachment (Optional)</Label>
+            {assignment.document && !file && (
+              <div className="border border-border rounded-lg p-3 mb-2 bg-bg-secondary">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-primary" />
+                  <p className="text-sm text-text-secondary">
+                    Current file: {assignment.documentName || "Attached"}
+                  </p>
+                </div>
+              </div>
+            )}
+            
             {!file ? (
               <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition cursor-pointer">
                 <input
@@ -329,7 +348,9 @@ export function CreateAssignmentDialog({ open, onOpenChange, onSubmit, loading }
                 />
                 <label htmlFor="file-upload" className="cursor-pointer">
                   <Upload className="w-8 h-8 text-text-secondary mx-auto mb-2" />
-                  <p className="text-sm text-text-secondary">Click to upload assignment file</p>
+                  <p className="text-sm text-text-secondary">
+                    {assignment.document ? "Click to replace file" : "Click to upload file"}
+                  </p>
                   <p className="text-xs text-text-secondary mt-1">PDF, DOC, PPT, TXT, ZIP (Max 10MB)</p>
                 </label>
               </div>
@@ -357,7 +378,7 @@ export function CreateAssignmentDialog({ open, onOpenChange, onSubmit, loading }
               type="submit" 
               disabled={loading || selectedStudentIds.length === 0 || !formData.title || !formData.description || !formData.dueDate}
             >
-              {loading ? "Creating..." : "Create Assignment"}
+              {loading ? "Updating..." : "Update Assignment"}
             </Button>
           </DialogFooter>
         </form>

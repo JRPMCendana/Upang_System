@@ -1,5 +1,13 @@
 // Assignment Domain Types
 
+export interface AssignmentUser {
+  _id: string
+  username: string
+  email: string
+  firstName?: string
+  lastName?: string
+}
+
 export interface Assignment {
   _id: string
   id: string
@@ -17,6 +25,13 @@ export interface Assignment {
   createdBy: string
   createdAt: string
   updatedAt: string
+  // Backend-specific properties
+  assignedBy?: string | AssignmentUser
+  assignedTo?: string[] | AssignmentUser[]
+  document?: string
+  documentName?: string
+  documentType?: string
+  // Student-specific properties
   submission?: {
     _id: string
     isSubmitted: boolean
