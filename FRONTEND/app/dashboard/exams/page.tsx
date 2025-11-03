@@ -8,15 +8,17 @@ import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 import { formatDate } from "@/utils/date.utils"
-import { ClipboardList, Plus, Loader2, Upload, Search, FileImage, CheckCircle } from "lucide-react"
+import { ClipboardList, Plus, Loader2, Upload, Search, FileImage, CheckCircle, MoreVertical, PenLine } from "lucide-react"
 import { useExams } from "@/hooks/use-exams"
 import { CreateExamDialog } from "@/components/dialogs/create-exam-dialog"
+import { EditExamDialog } from "@/components/dialogs/edit-exam-dialog"
 import { SubmitExamDialog } from "@/components/dialogs/submit-exam-dialog"
 import { examService } from "@/services/exam-service"
 import { Input } from "@/components/ui/input"
 import { getUserFullName } from "@/utils/user.utils"
 import { FileViewerDialog } from "@/components/dialogs/file-viewer-dialog"
 import { Badge } from "@/components/ui/badge"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 export default function ExamsPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
@@ -27,7 +29,10 @@ export default function ExamsPage() {
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false)
   const [selectedExamId, setSelectedExamId] = useState<string>("")
   const [selectedExamTitle, setSelectedExamTitle] = useState<string>("")
-  const [submissionByExamId, setSubmissionByExamId] = useState<Record<string, { fileId: string; fileName?: string; fileType?: string }>>({})
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editingExamInitial, setEditingExamInitial] = useState<{ title: string; description: string; dueDate?: string | null; totalPoints?: number; documentName?: string | null } | null>(null)
+  const [submissionByExamId, setSubmissionByExamId] = useState<Record<string, { fileId?: string; fileName?: string; fileType?: string; status?: 'pending' | 'submitted' | 'graded' | 'due'; grade?: number | null }>>({})
+  const [teacherStatusByExamId, setTeacherStatusByExamId] = useState<Record<string, 'pending' | 'submitted' | 'graded' | 'due'>>({})
   const [viewerOpen, setViewerOpen] = useState(false)
   const [viewerFileId, setViewerFileId] = useState<string>("")
   const [viewerFileName, setViewerFileName] = useState<string>("")
@@ -47,14 +52,14 @@ export default function ExamsPage() {
             try {
               const res: any = await examService.getMySubmission(e._id)
               const data = res?.data || null
-              if (data && data.submittedDocument) {
-                return [e._id, { fileId: data.submittedDocument, fileName: data.submittedDocumentName, fileType: data.submittedDocumentType }]
+              if (data) {
+                return [e._id, { fileId: data.submittedDocument || undefined, fileName: data.submittedDocumentName, fileType: data.submittedDocumentType, status: data.status, grade: data.grade }]
               }
             } catch {}
             return null
           })
         )
-        const map: Record<string, { fileId: string; fileName?: string; fileType?: string }> = {}
+        const map: Record<string, { fileId?: string; fileName?: string; fileType?: string; status?: 'pending' | 'submitted' | 'graded' | 'due'; grade?: number | null }> = {}
         entries.forEach((item) => {
           if (item) map[item[0] as string] = item[1] as any
         })
@@ -62,6 +67,37 @@ export default function ExamsPage() {
       })()
     }
   }, [isAuthenticated, router, authLoading, user?.role, exams])
+
+  // Teacher: derive status per exam from submissions
+  useEffect(() => {
+    if (authLoading) return
+    if (!isAuthenticated) return
+    if (user?.role !== 'teacher' || exams.length === 0) return
+
+    ;(async () => {
+      const entries = await Promise.all(
+        exams.map(async (e) => {
+          try {
+            const res: any = await examService.getSubmissionsByExam(e._id, 1, 100)
+            const list: any[] = res?.data || []
+            const anyGraded = list.some((s) => s.grade !== null && s.grade !== undefined)
+            const anySubmitted = list.some((s) => s.isSubmitted === true)
+            const status: 'pending' | 'submitted' | 'graded' | 'due' = anyGraded
+              ? 'graded'
+              : anySubmitted
+              ? 'submitted'
+              : (e.dueDate && new Date(e.dueDate) < new Date()) ? 'due' : 'pending'
+            return [e._id, status] as const
+          } catch {
+            return null
+          }
+        })
+      )
+      const map: Record<string, 'pending' | 'submitted' | 'graded' | 'due'> = {}
+      entries.forEach((item) => { if (item) map[item[0]] = item[1] })
+      setTeacherStatusByExamId(map)
+    })()
+  }, [isAuthenticated, authLoading, user?.role, exams])
 
   const isTeacher = user?.role === "teacher"
   const isStudent = user?.role === "student"
@@ -129,7 +165,7 @@ export default function ExamsPage() {
                     .map((exam) => (
                     <Card key={exam._id} className="p-6 mb-4">
                       {/* Header */}
-                      <div className="flex items-start justify-between">
+                        <div className="flex items-start justify-between">
                         <div className="flex items-start gap-3">
                           <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center">
                             <ClipboardList className="w-5 h-5 text-primary" />
@@ -137,18 +173,47 @@ export default function ExamsPage() {
                           <div>
                             <div className="flex items-center gap-2 flex-wrap">
                               <h3 className="text-lg font-semibold">{exam.title}</h3>
-                              <span className="text-xs text-text-secondary">Active</span>
-                              {submissionByExamId[exam._id] && (
-                                <Badge className="bg-green-500/10 text-green-600 flex items-center gap-1">
-                                  <CheckCircle className="w-3 h-3" /> Submitted
-                                </Badge>
-                              )}
+                              {/* Status badges */}
+                              {isTeacher && (() => {
+                                const s = teacherStatusByExamId[exam._id]
+                                return s ? renderSubmissionStatusBadge(s) : null
+                              })()}
+                              {isStudent && (() => {
+                                const s = submissionByExamId[exam._id]?.status
+                                return s ? renderSubmissionStatusBadge(s) : null
+                              })()}
                             </div>
                             {exam.description && (
                               <p className="text-sm text-text-secondary mt-1">{exam.description}</p>
                             )}
                           </div>
                         </div>
+                        {isTeacher && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setEditDialogOpen(true)
+                                  setEditingExamInitial({
+                                    title: exam.title,
+                                    description: exam.description,
+                                    dueDate: exam.dueDate,
+                                    totalPoints: exam.totalPoints,
+                                    documentName: exam.documentName || undefined,
+                                  })
+                                  setSelectedExamId(exam._id)
+                                }}
+                              >
+                                <PenLine className="w-4 h-4 mr-2" /> Edit Exam
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </div>
 
                       {/* Meta grid with separators like quizzes */}
@@ -179,12 +244,20 @@ export default function ExamsPage() {
                           <p className="font-semibold text-sm">{exam.totalPoints}</p>
                         </div>
                         <div>
-                          <p className="text-xs text-text-secondary mb-1">Your Submission</p>
+                          <p className="text-xs text-text-secondary mb-1">{isTeacher ? 'Document' : 'Your Submission'}</p>
                           <p className="font-semibold text-sm">
-                            {submissionByExamId[exam._id] ? (
-                              <span className="text-green-600 flex items-center gap-1"><FileImage className="w-4 h-4"/> Screenshot submitted</span>
+                            {isTeacher ? (
+                              exam.documentName ? exam.documentName : 'No document'
                             ) : (
-                              'Not submitted'
+                              <>
+                                {submissionByExamId[exam._id]?.status === 'graded' && (
+                                  <span className="text-green-600 flex items-center gap-1"><CheckCircle className="w-4 h-4"/> Graded</span>
+                                )}
+                                {submissionByExamId[exam._id]?.status === 'submitted' && (
+                                  <span className="text-blue-600 flex items-center gap-1"><FileImage className="w-4 h-4"/> Submitted</span>
+                                )}
+                                {!submissionByExamId[exam._id] || submissionByExamId[exam._id]?.status === 'pending' ? 'Not submitted' : null}
+                              </>
                             )}
                           </p>
                         </div>
@@ -194,8 +267,8 @@ export default function ExamsPage() {
                       <div className="mt-6 flex items-center justify-between">
                         {/* Left-side action (student submitted) */}
                         <div>
-                          {isStudent && submissionByExamId[exam._id] && (
-                            <Button variant="outline" size="sm" className="gap-1" onClick={() => { const f = submissionByExamId[exam._id]; setViewerFileId(f.fileId); setViewerFileName(f.fileName || "Submitted file"); setViewerFileType(f.fileType); setViewerOpen(true); }}>
+                          {isStudent && submissionByExamId[exam._id]?.fileId && (
+                            <Button variant="outline" size="sm" className="gap-1" onClick={() => { const f = submissionByExamId[exam._id]; setViewerFileId(f.fileId as string); setViewerFileName(f.fileName || "Submitted file"); setViewerFileType(f.fileType); setViewerOpen(true); }}>
                               <FileImage className="w-4 h-4" /> View Screenshot
                             </Button>
                           )}
@@ -207,8 +280,10 @@ export default function ExamsPage() {
                             <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/exams/${exam._id}/submissions`)}>
                               View Submissions
                             </Button>
-                          ) : submissionByExamId[exam._id] ? (
-                            <Button variant="secondary" size="sm" onClick={async () => { await examService.unsubmitExam(exam._id); setSubmissionByExamId((prev) => { const n = { ...prev }; delete n[exam._id]; return n; }); }}>
+                          ) : submissionByExamId[exam._id]?.status === 'graded' ? (
+                            <div className="text-sm font-semibold">{submissionByExamId[exam._id]?.grade ?? 0}/{exam.totalPoints}</div>
+                          ) : submissionByExamId[exam._id]?.status === 'submitted' ? (
+                            <Button variant="secondary" size="sm" onClick={async () => { await examService.unsubmitExam(exam._id); setSubmissionByExamId((prev) => { const n: typeof prev = { ...prev, [exam._id]: { status: 'pending' as const } }; return n; }); }}>
                               Unsubmit
                             </Button>
                           ) : (
@@ -245,13 +320,24 @@ export default function ExamsPage() {
           const fileId = data?.submittedDocument || data?.submittedFile || data?.fileId
           const fileName = data?.submittedDocumentName || data?.fileName
           const fileType = data?.submittedDocumentType || data?.fileType
-          if (fileId) setSubmissionByExamId((prev) => ({ ...prev, [examId]: { fileId, fileName, fileType } }))
+          if (fileId) setSubmissionByExamId((prev) => ({ ...prev, [examId]: { fileId, fileName, fileType, status: 'submitted' as const } }))
           setSubmitDialogOpen(false)
         }}
         loading={loading}
       />
 
       <FileViewerDialog open={viewerOpen} onOpenChange={setViewerOpen} fileId={viewerFileId} fileName={viewerFileName} fileType={viewerFileType} fetchFile={examService.downloadSubmissionFile.bind(examService)} />
+
+      {/* Edit Exam Dialog */}
+      {isTeacher && editingExamInitial && (
+        <EditExamDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          examId={selectedExamId}
+          initial={editingExamInitial}
+          onUpdated={async () => { await fetchExams() }}
+        />
+      )}
     </div>
   )
 }
@@ -284,4 +370,17 @@ function StudentInlineSubmit({ examId, onOpenDialog }: { examId: string; onOpenD
   )
 }
 
+
+function renderSubmissionStatusBadge(status?: 'pending' | 'submitted' | 'graded' | 'due') {
+  if (!status) return null
+  const map: Record<string, { className: string; label: string }> = {
+    pending: { className: 'bg-amber-500/10 text-amber-600 border-amber-500/20', label: 'Pending' },
+    submitted: { className: 'bg-blue-500/10 text-blue-600 border-blue-500/20', label: 'Submitted' },
+    graded: { className: 'bg-green-500/10 text-green-600 border-green-500/20', label: 'Graded' },
+    due: { className: 'bg-red-500/10 text-red-600 border-red-500/20', label: 'Due' },
+  }
+  const meta = map[status]
+  if (!meta) return null
+  return <Badge className={meta.className}>{meta.label}</Badge>
+}
 

@@ -17,7 +17,6 @@ export interface Exam {
   document?: string | null
   documentName?: string | null
   documentType?: string | null
-  status?: 'active' | 'inactive'
   createdAt: string
   updatedAt?: string
 }
@@ -40,6 +39,7 @@ export interface ExamSubmission {
   submittedDocument?: string | null
   submittedDocumentName?: string | null
   submittedDocumentType?: string | null
+  status?: 'pending' | 'submitted' | 'graded' | 'due'
   createdAt?: string
   updatedAt?: string
 }

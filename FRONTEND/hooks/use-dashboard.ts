@@ -53,7 +53,7 @@ export function useDashboard(options: UseDashboardOptions) {
       setLoading(false)
       setInitialLoading(false)
     }
-  }, [studentStats, toast, isAuthenticated])
+  }, [toast, isAuthenticated])
 
   // Fetch teacher dashboard
   const fetchTeacherDashboard = useCallback(async () => {
@@ -70,6 +70,8 @@ export function useDashboard(options: UseDashboardOptions) {
 
     try {
       const response = await dashboardService.getTeacherDashboard()
+      // Debug: inspect fetched teacher dashboard payload
+      console.log('[Dashboard] Teacher stats fetched:', response.data)
       setTeacherStats(response.data)
     } catch (error: any) {
       console.error("Error fetching teacher dashboard:", error)
@@ -85,7 +87,7 @@ export function useDashboard(options: UseDashboardOptions) {
       setLoading(false)
       setInitialLoading(false)
     }
-  }, [teacherStats, toast, isAuthenticated])
+  }, [toast, isAuthenticated])
 
   // Refresh dashboard data
   const refreshDashboard = useCallback(async () => {
@@ -98,18 +100,14 @@ export function useDashboard(options: UseDashboardOptions) {
 
   // Auto-fetch on mount if enabled - but only after authentication is complete
   useEffect(() => {
-    // Wait for auth to complete and user to be authenticated
+    if (!autoFetch) return
     if (authLoading) return
-    
-    if (autoFetch && isAuthenticated) {
-      // Small delay to ensure localStorage token is available
-      const timer = setTimeout(() => {
-        refreshDashboard()
-      }, 100)
-      
-      return () => clearTimeout(timer)
-    }
-  }, [autoFetch, isAuthenticated, authLoading, refreshDashboard])
+    if (!isAuthenticated) return
+    if (role !== 'student' && role !== 'teacher') return
+    // Fire once per mount based on role; dependencies exclude dashboard state to avoid loops
+    void refreshDashboard()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoFetch, isAuthenticated, authLoading, role])
 
   return {
     // State

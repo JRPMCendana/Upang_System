@@ -9,6 +9,8 @@ class ExamService {
     return apiClient.request<GetExamsResponse>(`/exams?page=${page}&limit=${limit}`, { method: "GET" })
   }
 
+  // deleteExam removed (undo)
+
   async createExam(data: CreateExamData, file?: File): Promise<{ success: boolean; message: string; data: Exam }> {
     const formData = new FormData()
     formData.append("title", data.title)
@@ -30,6 +32,33 @@ class ExamService {
     if (!response.ok) {
       const errorData = await response.json()
       const error: any = new Error(errorData.message || errorData.error || "Failed to create exam")
+      error.status = response.status
+      throw error
+    }
+
+    return response.json()
+  }
+
+  async updateExam(examId: string, data: Partial<CreateExamData>, file?: File): Promise<{ success: boolean; message: string; data: Exam }> {
+    const formData = new FormData()
+    if (data.title) formData.append('title', data.title)
+    if (data.description) formData.append('description', data.description)
+    if (typeof data.dueDate !== 'undefined' && data.dueDate !== null) formData.append('dueDate', data.dueDate)
+    if (typeof (data as any).totalPoints !== 'undefined' && (data as any).totalPoints !== null) formData.append('totalPoints', String((data as any).totalPoints))
+    if (file) formData.append('document', file)
+
+    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null
+    const response = await fetch(`${this.getBaseURL()}/exams/${examId}`, {
+      method: 'PUT',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      const error: any = new Error(errorData.message || errorData.error || 'Failed to update exam')
       error.status = response.status
       throw error
     }

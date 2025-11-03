@@ -180,7 +180,7 @@ export default function GradesPage() {
                             <td className="py-3 px-4">{item.name}</td>
                             <td className="py-3 px-4">
                               <Badge className="bg-primary/10 text-primary">
-                                {item.type === 'assignment' ? 'Assignment' : 'Quiz'}
+                                {item.type === 'assignment' ? 'Assignment' : item.type === 'quiz' ? 'Quiz' : 'Exam'}
                               </Badge>
                             </td>
                             <td className="py-3 px-4">
@@ -265,7 +265,7 @@ export default function GradesPage() {
             </div>
 
             {/* Class Stats */}
-            <div className="grid md:grid-cols-4 gap-4">
+            <div className="grid md:grid-cols-3 gap-4">
               <Card className="p-6">
                 <p className="text-sm text-text-secondary mb-2">Class Average</p>
                 <p className="text-3xl font-bold text-primary">{stats.classAverage}%</p>
@@ -275,11 +275,6 @@ export default function GradesPage() {
                 <p className="text-sm text-text-secondary mb-2">Pass Rate</p>
                 <p className="text-3xl font-bold text-accent">{stats.passRate}%</p>
                 <p className="text-xs text-text-secondary mt-2">{stats.passingStudents}</p>
-              </Card>
-              <Card className="p-6">
-                <p className="text-sm text-text-secondary mb-2">Avg. Submissions</p>
-                <p className="text-3xl font-bold">{stats.avgSubmissions}</p>
-                <p className="text-xs text-text-secondary mt-2">per assignment</p>
               </Card>
               <Card className="p-6">
                 <p className="text-sm text-text-secondary mb-2">Grading Status</p>
@@ -325,7 +320,7 @@ export default function GradesPage() {
                 )}
               </Card>
 
-              {/* Performance by Assignment/Quiz */}
+              {/* Performance by Assignment/Quiz/Exam */}
               <Card className="p-6">
                 <h2 className="text-lg font-semibold mb-4">Performance by Task</h2>
                 {performanceData.length > 0 ? (
@@ -333,13 +328,27 @@ export default function GradesPage() {
                     <BarChart data={performanceData}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis 
-                        dataKey="displayName" 
-                        angle={-45}
-                        textAnchor="end"
-                        height={80}
+                        dataKey="displayName"
+                        tick={false}
+                        axisLine={false}
                       />
                       <YAxis domain={[0, 100]} />
-                      <Tooltip />
+                      <Tooltip content={({ active, payload, label }) => {
+                        if (!active || !payload || payload.length === 0) return null
+                        const first = payload[0]
+                        const data = first && first.payload as any
+                        const type = data?.type === 'quiz' ? 'Quiz' : data?.type === 'exam' ? 'Exam' : 'Assignment'
+                        const average = payload.find(p => p.dataKey === 'average')?.value as number | undefined
+                        const passed = payload.find(p => p.dataKey === 'passed')?.value as number | undefined
+                        return (
+                          <div className="rounded-md border border-border bg-white p-3 shadow-sm">
+                            <div className="font-semibold mb-1">Title: {label}</div>
+                            <div className="text-xs text-text-secondary mb-2">Type: {type}</div>
+                            <div className="text-sm">Average Grade Percentage: <span className="font-semibold">{average ?? 0}</span></div>
+                            <div className="text-sm">Passed: <span className="font-semibold">{passed ?? 0}</span></div>
+                          </div>
+                        )
+                      }} />
                       <Legend />
                       <Bar dataKey="average" fill="#2563eb" name="Average Grade Percentage" />
                       <Bar dataKey="passed" fill="#10b981" name="Passed" />
