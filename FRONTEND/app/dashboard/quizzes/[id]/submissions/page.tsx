@@ -13,28 +13,35 @@ import {
   ArrowLeft, 
   Download, 
   CheckCircle, 
-  XCircle, 
   Clock,
   User,
   Calendar,
   Eye,
-  ExternalLink
+  Image as ImageIcon
 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter, useParams } from "next/navigation"
-import { useEffect, useState } from "react"
-import { useAssignmentSubmissions } from "@/hooks/use-assignment-submissions"
+import { useEffect, useState, useCallback } from "react"
+import { quizService } from "@/services/quiz-service"
 import { formatDate } from "@/utils/date.utils"
-import type { AssignmentSubmission } from "@/types/assignment.types"
+import { useToast } from "@/hooks/use-toast"
+import type { QuizSubmission } from "@/types/quiz.types"
 import { FileViewerDialog } from "@/components/dialogs/file-viewer-dialog"
-import { assignmentService } from "@/services/assignment-service"
 
-export default function AssignmentSubmissionsPage() {
+export default function QuizSubmissionsPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const params = useParams()
-  const assignmentId = params.id as string
+  const quizId = params.id as string
+  const { toast } = useToast()
 
+  const [submissions, setSubmissions] = useState<QuizSubmission[]>([])
+  const [quiz, setQuiz] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
+  const [initialLoading, setInitialLoading] = useState(true)
+  const [gradingSubmissionId, setGradingSubmissionId] = useState<string | null>(null)
+  const [gradeFormData, setGradeFormData] = useState({ grade: 0, feedback: "" })
+  
   // File viewer state
   const [viewerOpen, setViewerOpen] = useState(false)
   const [viewingFile, setViewingFile] = useState<{
@@ -43,22 +50,101 @@ export default function AssignmentSubmissionsPage() {
     fileType: string
   } | null>(null)
 
-  // Use the dedicated submissions hook
-  const {
-    submissions,
-    assignment,
-    loading,
-    initialLoading,
-    gradingSubmissionId,
-    gradeFormData,
-    startGrading,
-    cancelGrading,
-    updateGradeForm,
-    submitGrade,
-    downloadSubmission,
-  } = useAssignmentSubmissions({ assignmentId, autoFetch: true })
+  // Fetch submissions
+  const fetchSubmissions = useCallback(async () => {
+    setLoading(true)
+    try {
+      const response = await quizService.getSubmissionsByQuiz(quizId)
+      if (response && response.data) {
+        setSubmissions(response.data)
+      }
+      
+      // Fetch quiz details
+      const quizResponse = await quizService.getQuizById(quizId)
+      if (quizResponse && quizResponse.data) {
+        setQuiz(quizResponse.data)
+      }
+    } catch (error: any) {
+      console.error("Error fetching submissions:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to fetch submissions",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+      setInitialLoading(false)
+    }
+  }, [quizId, toast])
 
-  // Handle authentication and authorization
+  // View file in modal
+  const handleViewFile = useCallback((fileId: string, fileName: string, fileType?: string) => {
+    setViewingFile({
+      fileId,
+      fileName: fileName || "Quiz Submission",
+      fileType: fileType || "image/png"
+    })
+    setViewerOpen(true)
+  }, [])
+
+  // Download submission file
+  const handleDownloadSubmission = useCallback(async (fileId: string, fileName: string) => {
+    try {
+      const blob = await quizService.downloadSubmissionFile(fileId)
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = fileName || 'quiz-submission'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to download file",
+        variant: "destructive",
+      })
+    }
+  }, [toast])
+
+  // Grade submission
+  const handleGradeSubmission = useCallback(async (submissionId: string) => {
+    if (!gradeFormData.grade) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter a grade",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setLoading(true)
+    try {
+      await quizService.gradeSubmission(submissionId, {
+        grade: gradeFormData.grade,
+        feedback: gradeFormData.feedback || undefined
+      })
+      
+      toast({
+        title: "Success",
+        description: "Submission graded successfully",
+      })
+      
+      setGradingSubmissionId(null)
+      setGradeFormData({ grade: 0, feedback: "" })
+      await fetchSubmissions()
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to grade submission",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }, [gradeFormData, fetchSubmissions, toast])
+
   useEffect(() => {
     if (authLoading) return
     if (!isAuthenticated) {
@@ -66,72 +152,24 @@ export default function AssignmentSubmissionsPage() {
       return
     }
     if (user?.role !== "teacher") {
-      router.push("/dashboard/assignments")
+      router.push("/dashboard/quizzes")
       return
     }
   }, [isAuthenticated, authLoading, user, router])
 
-  // Event handlers - simple, no business logic
-  const handleGradeSubmission = async (submissionId: string) => {
-    await submitGrade(submissionId)
-  }
-
-  const handleViewFile = (fileId: string, fileName: string, fileType?: string) => {
-    setViewingFile({
-      fileId,
-      fileName: fileName || "Submitted File",
-      fileType: fileType || "application/pdf"
-    })
-    setViewerOpen(true)
-  }
-
-  const handleDownloadSubmission = async (fileId: string, fileName: string) => {
-    try {
-      const blob = await assignmentService.downloadSubmissionFile(fileId)
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = fileName
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error('Error downloading file:', error)
+  useEffect(() => {
+    if (quizId && isAuthenticated && user?.role === "teacher") {
+      fetchSubmissions()
     }
-  }
+  }, [quizId, isAuthenticated, user, fetchSubmissions])
 
-  const handleStartGrading = (submission: AssignmentSubmission) => {
-    startGrading(submission._id, submission.grade, submission.feedback)
-  }
-
-  const handleCancelGrading = () => {
-    cancelGrading()
-  }
-
-  const handleGradeChange = (grade: number) => {
-    updateGradeForm({ grade })
-  }
-
-  const handleFeedbackChange = (feedback: string) => {
-    updateGradeForm({ feedback })
-  }
-
-  // UI helper function (pure presentation logic)
-  const getSubmissionStatusBadge = (submission: AssignmentSubmission) => {
-    if (submission.status === "graded") {
+  // UI helper
+  const getSubmissionStatusBadge = (submission: QuizSubmission) => {
+    if (submission.grade !== null && submission.grade !== undefined) {
       return (
         <Badge className="bg-green-500/10 text-green-600 border-green-500/20">
           <CheckCircle className="w-3 h-3 mr-1" />
           Graded
-        </Badge>
-      )
-    }
-    if (submission.status === "late") {
-      return (
-        <Badge className="bg-orange-500/10 text-orange-600 border-orange-500/20">
-          <Clock className="w-3 h-3 mr-1" />
-          Late
         </Badge>
       )
     }
@@ -143,7 +181,6 @@ export default function AssignmentSubmissionsPage() {
     )
   }
 
-  // Loading state
   if (authLoading || initialLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-bg-secondary">
@@ -176,10 +213,10 @@ export default function AssignmentSubmissionsPage() {
               </Button>
               <div className="flex-1">
                 <h1 className="text-3xl font-bold mb-2">
-                  {assignment?.title || "Assignment"} - Submissions
+                  {quiz?.title || "Quiz"} - Submissions
                 </h1>
                 <p className="text-text-secondary">
-                  Review and grade student submissions ({submissions.length} total)
+                  Review and grade student quiz submissions ({submissions.length} total)
                 </p>
               </div>
             </div>
@@ -208,7 +245,7 @@ export default function AssignmentSubmissionsPage() {
                             <p className="text-sm text-text-secondary">{submission.student?.email}</p>
                             <div className="flex items-center gap-2 mt-2 text-sm text-text-secondary">
                               <Calendar className="w-4 h-4" />
-                              <span>Submitted: {formatDate(submission.submittedAt)}</span>
+                              <span>Submitted: {submission.submittedAt ? formatDate(submission.submittedAt) : "N/A"}</span>
                             </div>
                           </div>
                         </div>
@@ -222,16 +259,16 @@ export default function AssignmentSubmissionsPage() {
                         </div>
                       </div>
 
-                      {/* Submission File */}
+                      {/* Submission File (Image/Screenshot) */}
                       {(submission.submittedDocument || submission.fileUrl) && (
                         <div className="flex items-center gap-3 p-4 bg-bg-secondary rounded-lg">
-                          <FileText className="w-5 h-5 text-primary" />
+                          <ImageIcon className="w-5 h-5 text-primary" />
                           <div className="flex-1">
                             <p className="text-sm font-medium">
-                              {submission.submittedDocumentName || "Submitted File"}
+                              {submission.submittedDocumentName || "Quiz Screenshot"}
                             </p>
                             <p className="text-xs text-text-secondary">
-                              {submission.submittedDocumentType || "File submission"}
+                              {submission.submittedDocumentType || "Image submission"}
                               {submission.submittedDocumentName && ` • ${submission.submittedDocumentName}`}
                             </p>
                           </div>
@@ -241,9 +278,9 @@ export default function AssignmentSubmissionsPage() {
                               size="sm"
                               onClick={() => {
                                 const fileId = submission.submittedDocument || submission.fileUrl
-                                const fileName = submission.submittedDocumentName || `submission-${submission.student?.username || 'file'}.pdf`
+                                const fileName = submission.submittedDocumentName || `quiz-submission-${submission.student?.username || 'file'}.png`
                                 if (fileId) {
-                                  handleViewFile(fileId, fileName, submission.submittedDocumentType)
+                                  handleViewFile(fileId, fileName, submission.submittedDocumentType || undefined)
                                 }
                               }}
                             >
@@ -255,7 +292,7 @@ export default function AssignmentSubmissionsPage() {
                               size="sm"
                               onClick={() => {
                                 const fileId = submission.submittedDocument || submission.fileUrl
-                                const fileName = submission.submittedDocumentName || `submission-${submission.student?.username || 'file'}.pdf`
+                                const fileName = submission.submittedDocumentName || `quiz-submission-${submission.student?.username || 'file'}.png`
                                 if (fileId) {
                                   handleDownloadSubmission(fileId, fileName)
                                 }
@@ -288,7 +325,7 @@ export default function AssignmentSubmissionsPage() {
                                 min="0"
                                 max="100"
                                 value={gradeFormData.grade}
-                                onChange={(e) => handleGradeChange(parseInt(e.target.value) || 0)}
+                                onChange={(e) => setGradeFormData(prev => ({ ...prev, grade: parseInt(e.target.value) || 0 }))}
                               />
                             </div>
                           </div>
@@ -299,7 +336,7 @@ export default function AssignmentSubmissionsPage() {
                               rows={4}
                               placeholder="Provide feedback for the student..."
                               value={gradeFormData.feedback}
-                              onChange={(e) => handleFeedbackChange(e.target.value)}
+                              onChange={(e) => setGradeFormData(prev => ({ ...prev, feedback: e.target.value }))}
                             />
                           </div>
                           <div className="flex gap-2">
@@ -311,7 +348,10 @@ export default function AssignmentSubmissionsPage() {
                             </Button>
                             <Button
                               variant="outline"
-                              onClick={handleCancelGrading}
+                              onClick={() => {
+                                setGradingSubmissionId(null)
+                                setGradeFormData({ grade: 0, feedback: "" })
+                              }}
                             >
                               Cancel
                             </Button>
@@ -321,7 +361,13 @@ export default function AssignmentSubmissionsPage() {
                         <div className="border-t border-border pt-4">
                           <Button
                             variant="outline"
-                            onClick={() => handleStartGrading(submission)}
+                            onClick={() => {
+                              setGradingSubmissionId(submission._id)
+                              setGradeFormData({
+                                grade: submission.grade || 0,
+                                feedback: submission.feedback || ""
+                              })
+                            }}
                           >
                             {submission.grade ? "Update Grade" : "Grade Submission"}
                           </Button>
@@ -344,7 +390,7 @@ export default function AssignmentSubmissionsPage() {
           fileId={viewingFile.fileId}
           fileName={viewingFile.fileName}
           fileType={viewingFile.fileType}
-          fetchFile={assignmentService.downloadSubmissionFile.bind(assignmentService)}
+          fetchFile={quizService.downloadSubmissionFile.bind(quizService)}
           onDownload={() => {
             if (viewingFile) {
               handleDownloadSubmission(viewingFile.fileId, viewingFile.fileName)
@@ -355,3 +401,4 @@ export default function AssignmentSubmissionsPage() {
     </div>
   )
 }
+

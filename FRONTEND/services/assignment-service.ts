@@ -308,7 +308,8 @@ class AssignmentService {
    */
   async downloadSubmissionFile(fileId: string): Promise<Blob> {
     const token = this.getAuthToken()
-    const response = await fetch(`${this.getBaseURL()}/assignments/files/${fileId}`, {
+    // Use submission file route
+    const response = await fetch(`${this.getBaseURL()}/submissions/files/${fileId}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -319,6 +320,15 @@ class AssignmentService {
     }
 
     return response.blob()
+  }
+
+  /**
+   * Get submission file URL for viewing (requires auth header, not query param)
+   * Note: This URL needs Authorization header, so use downloadSubmissionFile for actual access
+   */
+  getSubmissionFileUrl(fileId: string): string {
+    const baseURL = this.getBaseURL()
+    return `${baseURL}/submissions/files/${fileId}`
   }
 }
 

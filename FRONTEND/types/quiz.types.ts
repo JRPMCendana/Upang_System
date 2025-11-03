@@ -60,6 +60,7 @@ export interface QuizSubmission {
   submittedDocument: string | null
   submittedDocumentName: string | null
   submittedDocumentType: string | null
+  fileUrl?: string // Legacy field
   isSubmitted: boolean
   submittedAt: string | null
   grade: number | null

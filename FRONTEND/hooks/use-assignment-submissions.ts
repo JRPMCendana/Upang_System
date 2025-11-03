@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react"
 import { useAssignments } from "@/hooks/use-assignments"
+import { assignmentService } from "@/services/assignment-service"
 import type { AssignmentSubmission, Assignment } from "@/types/assignment.types"
 
 interface GradeFormData {
@@ -22,7 +23,6 @@ export function useAssignmentSubmissions(options: UseAssignmentSubmissionsOption
   const {
     getSubmissionsByAssignment,
     gradeSubmission: gradeSubmissionService,
-    downloadSubmissionFile,
     fetchAssignmentById,
     loading: assignmentsLoading,
   } = useAssignments({ autoFetch: false })
@@ -40,7 +40,8 @@ export function useAssignmentSubmissions(options: UseAssignmentSubmissionsOption
 
   // Fetch submissions for the assignment
   const fetchSubmissions = useCallback(async () => {
-    if (submissions.length === 0) {
+    const isFirstLoad = submissions.length === 0
+    if (isFirstLoad) {
       setInitialLoading(true)
     } else {
       setLoading(true)
@@ -58,7 +59,7 @@ export function useAssignmentSubmissions(options: UseAssignmentSubmissionsOption
       setLoading(false)
       setInitialLoading(false)
     }
-  }, [assignmentId, getSubmissionsByAssignment, submissions.length])
+  }, [assignmentId, getSubmissionsByAssignment])
 
   // Fetch assignment details
   const fetchAssignmentDetails = useCallback(async () => {
@@ -107,10 +108,25 @@ export function useAssignmentSubmissions(options: UseAssignmentSubmissionsOption
     return false
   }, [gradeSubmissionService, gradeFormData, fetchSubmissions])
 
-  // Download submission file
+  // Download submission file (just downloads, no viewing)
   const downloadSubmission = useCallback(async (fileId: string, fileName: string) => {
-    await downloadSubmissionFile(fileId, fileName)
-  }, [downloadSubmissionFile])
+    try {
+      const blob = await assignmentService.downloadSubmissionFile(fileId)
+      
+      // Create a blob URL and trigger download
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = fileName
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Error downloading file:', error)
+      throw error
+    }
+  }, [])
 
   // Refresh all data
   const refresh = useCallback(async () => {
@@ -126,6 +142,7 @@ export function useAssignmentSubmissions(options: UseAssignmentSubmissionsOption
       fetchSubmissions()
       fetchAssignmentDetails()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoFetch, assignmentId]) // Only depend on config, not the functions
 
   return {

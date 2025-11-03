@@ -218,7 +218,7 @@ class QuizService {
     }
   }> {
     return apiClient.request(
-      `/quiz-submissions/${quizId}/submissions`,
+      `/quizzes/${quizId}/submissions`,
       {
         params: { page, limit },
       }
@@ -233,7 +233,7 @@ class QuizService {
     gradeData: GradeQuizData
   ): Promise<{ success: boolean; message: string; data: QuizSubmission }> {
     return apiClient.request<{ success: boolean; message: string; data: QuizSubmission }>(
-      `/quiz-submissions/${submissionId}/grade`,
+      `/quizzes/submissions/${submissionId}/grade`,
       {
         method: "PUT",
         body: gradeData,
@@ -260,11 +260,12 @@ class QuizService {
   }
 
   /**
-   * Download submission file
+   * Download submission file (quiz submissions)
    */
   async downloadSubmissionFile(fileId: string): Promise<Blob> {
     const token = this.getAuthToken()
-    const response = await fetch(`${this.getBaseURL()}/files/download/${fileId}`, {
+    // Use quiz file route
+    const response = await fetch(`${this.getBaseURL()}/quizzes/files/${fileId}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

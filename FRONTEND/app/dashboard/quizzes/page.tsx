@@ -173,6 +173,13 @@ export default function QuizzesPage() {
                           className="ml-auto" 
                           variant={user?.role === "teacher" ? "outline" : "default"} 
                           size="sm"
+                          onClick={() => {
+                            if (user?.role === "teacher") {
+                              router.push(`/dashboard/quizzes/${quiz._id}/submissions`)
+                            } else {
+                              // Student submit quiz action would go here
+                            }
+                          }}
                         >
                           {user?.role === "teacher" ? "View Submissions" : "Submit Quiz"}
                         </Button>

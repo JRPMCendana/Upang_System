@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const SubmissionController = require('../controller/submission.controller');
+const FileController = require('../controller/file.controller');
 const authMiddleware = require('../middleware/auth.middleware');
 const { authorize } = require('../middleware/auth.middleware');
 const { upload } = require('../middleware/upload.middleware');
@@ -18,6 +19,9 @@ router.get('/:assignmentId/my-submission', authMiddleware, authorize('student'),
 router.get('/:assignmentId/submissions', authMiddleware, authorize('teacher'), SubmissionController.getSubmissionsByAssignment);
 
 router.put('/:submissionId/grade', authMiddleware, authorize('teacher'), SubmissionController.gradeSubmission);
+
+// File download route for assignment submissions
+router.get('/files/:fileId', authMiddleware, authorize('teacher', 'student'), FileController.getFile);
 
 module.exports = router;
 

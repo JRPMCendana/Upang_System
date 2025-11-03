@@ -62,7 +62,10 @@ export interface AssignmentSubmission {
   studentId: string
   student?: SubmissionStudent
   submittedAt: string
-  fileUrl?: string
+  fileUrl?: string // Legacy field
+  submittedDocument?: string // GridFS file ID
+  submittedDocumentName?: string
+  submittedDocumentType?: string
   textContent?: string
   linkUrl?: string
   status: "submitted" | "graded" | "late"
@@ -70,6 +73,7 @@ export interface AssignmentSubmission {
   feedback?: string
   gradedAt?: string
   gradedBy?: string
+  isSubmitted?: boolean
 }
 
 export interface SubmissionStudent {
