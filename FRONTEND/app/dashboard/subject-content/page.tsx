@@ -33,6 +33,7 @@ export default function SubjectContentPage() {
     loading,
     assignmentsTotal,
     quizzesTotal,
+    examsTotal,
     fetchAll,
   } = useTeacherActivities()
 
@@ -84,11 +85,15 @@ export default function SubjectContentPage() {
   })
 
   const getActivityIcon = (type: string) => {
-    return type === "quiz" ? "🧠" : "📄"
+    if (type === "quiz") return "🧠"
+    if (type === "exam") return "�"
+    return "�📄"
   }
 
   const getActivityColor = (type: string) => {
-    return type === "quiz" ? "bg-purple-500/10 text-purple-500" : "bg-blue-500/10 text-blue-500"
+    if (type === "quiz") return "bg-purple-500/10 text-purple-500"
+    if (type === "exam") return "bg-red-500/10 text-red-500"
+    return "bg-blue-500/10 text-blue-500"
   }
 
   return (
@@ -102,18 +107,18 @@ export default function SubjectContentPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold mb-2">Teacher's Assignments and Quizzes</h1>
+                <h1 className="text-3xl font-bold mb-2">Teacher's Activities</h1>
                 <p className="text-text-secondary">
-                  Monitor all assignments and quizzes created by teachers • {filteredActivities.length} total
+                  Monitor all assignments, quizzes, and exams created by teachers • {filteredActivities.length} total
                 </p>
               </div>
             </div>
 
             {/* Summary Stats */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-4 gap-4">
               <Card className="p-4">
                 <p className="text-sm text-text-secondary mb-1">Total Activities</p>
-                <p className="text-2xl font-bold">{assignmentsTotal + quizzesTotal}</p>
+                <p className="text-2xl font-bold">{assignmentsTotal + quizzesTotal + examsTotal}</p>
               </Card>
               <Card className="p-4">
                 <p className="text-sm text-text-secondary mb-1">Assignments</p>
@@ -122,6 +127,10 @@ export default function SubjectContentPage() {
               <Card className="p-4">
                 <p className="text-sm text-text-secondary mb-1">Quizzes</p>
                 <p className="text-2xl font-bold">{quizzesTotal}</p>
+              </Card>
+              <Card className="p-4">
+                <p className="text-sm text-text-secondary mb-1">Exams</p>
+                <p className="text-2xl font-bold">{examsTotal}</p>
               </Card>
             </div>
 
@@ -145,6 +154,7 @@ export default function SubjectContentPage() {
                     <SelectItem value="all">All Types</SelectItem>
                     <SelectItem value="assignment">Assignments Only</SelectItem>
                     <SelectItem value="quiz">Quizzes Only</SelectItem>
+                    <SelectItem value="exam">Exams Only</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={teacherFilter} onValueChange={setTeacherFilter} disabled={loadingTeachers}>
@@ -177,9 +187,9 @@ export default function SubjectContentPage() {
                   <FileText className="w-12 h-12 mx-auto mb-4 text-text-secondary" />
                   <h3 className="text-lg font-semibold mb-2">No activities found</h3>
                   <p className="text-text-secondary">
-                    {searchQuery || typeFilter !== "all"
+                    {searchQuery || typeFilter !== "all" || teacherFilter !== "all"
                       ? "Try adjusting your filters"
-                      : "No assignments or quizzes have been created yet"}
+                      : "No assignments, quizzes, or exams have been created yet"}
                   </p>
                 </Card>
               )}
@@ -196,7 +206,7 @@ export default function SubjectContentPage() {
                           <div className="flex items-center gap-2 mb-1">
                             <h3 className="text-lg font-semibold">{activity.title}</h3>
                             <Badge className={getActivityColor(activity.type)}>
-                              {activity.type === "quiz" ? "Quiz" : "Assignment"}
+                              {activity.type === "quiz" ? "Quiz" : activity.type === "exam" ? "Exam" : "Assignment"}
                             </Badge>
                           </div>
                           {activity.description && (
@@ -226,6 +236,9 @@ export default function SubjectContentPage() {
                             )}
                             {activity.type === "assignment" && activity.maxGrade && (
                               <Badge variant="outline">{activity.maxGrade} points</Badge>
+                            )}
+                            {activity.type === "exam" && activity.totalPoints && (
+                              <Badge variant="outline">{activity.totalPoints} points</Badge>
                             )}
                             {activity.documentName && (
                               <span className="text-xs">📎 {activity.documentName}</span>

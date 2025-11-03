@@ -17,6 +17,7 @@ interface UseSubmissionsReturn {
   breakdown: {
     totalAssignments: number
     totalQuizzes: number
+    totalExams: number
     total: number
   }
 
@@ -29,7 +30,7 @@ interface UseSubmissionsReturn {
     search?: string
   ) => Promise<void>
   
-  getSubmissionDetail: (submissionId: string, type: "assignment" | "quiz") => Promise<any>
+  getSubmissionDetail: (submissionId: string, type: "assignment" | "quiz" | "exam") => Promise<any>
 }
 
 /**
@@ -50,6 +51,7 @@ export function useSubmissions(): UseSubmissionsReturn {
   const [breakdown, setBreakdown] = useState({
     totalAssignments: 0,
     totalQuizzes: 0,
+    totalExams: 0,
     total: 0
   })
 

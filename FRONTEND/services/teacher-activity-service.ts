@@ -5,7 +5,7 @@ import { apiClient } from "./api-client"
 
 export interface TeacherActivity {
   _id: string
-  type: "assignment" | "quiz"
+  type: "assignment" | "quiz" | "exam"
   title: string
   description?: string
   dueDate?: string
@@ -35,6 +35,7 @@ export interface TeacherActivitiesResponse {
   success: boolean
   assignments: any[]
   quizzes: any[]
+  exams: any[]
   assignmentsPagination: {
     currentPage: number
     limit: number
@@ -44,6 +45,14 @@ export interface TeacherActivitiesResponse {
     hasPrevPage: boolean
   }
   quizzesPagination: {
+    currentPage: number
+    limit: number
+    totalItems: number
+    totalPages: number
+    hasNextPage: boolean
+    hasPrevPage: boolean
+  }
+  examsPagination: {
     currentPage: number
     limit: number
     totalItems: number
@@ -85,6 +94,24 @@ class TeacherActivityService {
     }
     const response = await apiClient.request<any>(
       "/admin/quizzes",
+      { method: "GET", params }
+    )
+    return response
+  }
+
+  /**
+   * Get all exams created by teachers
+   * @param page - Page number
+   * @param limit - Items per page
+   * @param teacherId - Optional teacher ID to filter by
+   */
+  async getAllExams(page: number = 1, limit: number = 10, teacherId?: string): Promise<any> {
+    const params: any = { page, limit }
+    if (teacherId) {
+      params.teacherId = teacherId
+    }
+    const response = await apiClient.request<any>(
+      "/admin/exams",
       { method: "GET", params }
     )
     return response

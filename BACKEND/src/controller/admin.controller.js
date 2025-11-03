@@ -5,6 +5,7 @@ const SubmissionService = require('../services/submission.service');
 const QuizSubmissionService = require('../services/quiz-submission.service');
 const AdminStatsService = require('../services/admin-stats.service');
 const AdminSubmissionService = require('../services/admin-submission.service');
+const ExamService = require('../services/exam.service');
 
 class AdminController {
   static async createAccount(req, res, next) {
@@ -259,12 +260,12 @@ class AdminController {
   static async getSubmissionDetail(req, res, next) {
     try {
       const { submissionId } = req.params;
-      const { type } = req.query; // 'assignment' or 'quiz'
+      const { type } = req.query; // 'assignment', 'quiz', or 'exam'
 
-      if (!type || (type !== 'assignment' && type !== 'quiz')) {
+      if (!type || (type !== 'assignment' && type !== 'quiz' && type !== 'exam')) {
         return res.status(400).json({
           error: 'Validation Error',
-          message: 'Type query parameter is required and must be "assignment" or "quiz"'
+          message: 'Type query parameter is required and must be "assignment", "quiz", or "exam"'
         });
       }
 
@@ -276,6 +277,24 @@ class AdminController {
       });
     } catch (error) {
       console.error('Error in getSubmissionDetail:', error);
+      next(error);
+    }
+  }
+
+  static async getAllExams(req, res, next) {
+    try {
+      const page = req.query.page || 1;
+      const limit = req.query.limit || 10;
+      const teacherId = req.query.teacherId || null;
+
+      const result = await ExamService.getAllExams(page, limit, teacherId);
+
+      res.status(200).json({
+        success: true,
+        data: result.exams,
+        pagination: result.pagination
+      });
+    } catch (error) {
       next(error);
     }
   }

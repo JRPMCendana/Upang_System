@@ -1,15 +1,17 @@
 const AssignmentSubmission = require('../models/AssignmentSubmission.model');
 const QuizSubmission = require('../models/QuizSubmission.model');
+const ExamSubmission = require('../models/ExamSubmission.model');
 const Assignment = require('../models/Assignment.model');
 const Quiz = require('../models/Quiz.model');
+const Exam = require('../models/Exam.model');
 const DbUtils = require('../utils/db.utils');
 
 class AdminSubmissionService {
   /**
-   * Get all submissions (both assignments and quizzes) with filtering and pagination
+   * Get all submissions (assignments, quizzes, and exams) with filtering and pagination
    * @param {number} page - Page number
    * @param {number} limit - Items per page
-   * @param {string} type - Filter by type: 'assignment', 'quiz', or 'all'
+   * @param {string} type - Filter by type: 'assignment', 'quiz', 'exam', or 'all'
    * @param {string} status - Filter by status: 'graded', 'pending', or 'all'
    * @param {string} search - Search query for student name or activity title
    * @returns {Object} Combined submissions with pagination
@@ -45,8 +47,10 @@ class AdminSubmissionService {
 
       let assignmentSubmissions = [];
       let quizSubmissions = [];
+      let examSubmissions = [];
       let totalAssignments = 0;
       let totalQuizzes = 0;
+      let totalExams = 0;
 
       // Fetch assignment submissions
       if (type === 'all' || type === 'assignment') {
@@ -137,8 +141,53 @@ class AdminSubmissionService {
         totalQuizzes = countQuizzes;
       }
 
+      // Fetch exam submissions
+      if (type === 'all' || type === 'exam') {
+        const examQuery = ExamSubmission.find(statusFilter)
+          .populate({
+            path: 'exam',
+            select: 'title description dueDate totalPoints assignedBy',
+            populate: {
+              path: 'assignedBy',
+              select: 'firstName lastName email username'
+            }
+          })
+          .populate('student', 'firstName lastName email username')
+          .sort({ submittedAt: -1 })
+          .lean();
+
+        const [exams, countExams] = await Promise.all([
+          examQuery,
+          ExamSubmission.countDocuments(statusFilter)
+        ]);
+
+        examSubmissions = exams.map(sub => ({
+          _id: sub._id,
+          type: 'exam',
+          activity: sub.exam?.title || 'Unknown Exam',
+          activityId: sub.exam?._id,
+          description: sub.exam?.description,
+          student: sub.student ? `${sub.student.firstName} ${sub.student.lastName}` : 'Unknown Student',
+          studentId: sub.student?._id,
+          studentEmail: sub.student?.email,
+          studentUsername: sub.student?.username,
+          submittedAt: sub.submittedAt,
+          grade: sub.grade,
+          maxGrade: sub.exam?.totalPoints || 100,
+          feedback: sub.feedback,
+          gradedAt: sub.gradedAt,
+          status: sub.grade !== null ? 'graded' : 'pending',
+          dueDate: sub.exam?.dueDate,
+          submittedDocument: sub.submittedDocument,
+          submittedDocumentName: sub.submittedDocumentName,
+          assignedBy: sub.exam?.assignedBy
+        }));
+
+        totalExams = countExams;
+      }
+
       // Combine and sort by submission date
-      let allSubmissions = [...assignmentSubmissions, ...quizSubmissions].sort(
+      let allSubmissions = [...assignmentSubmissions, ...quizSubmissions, ...examSubmissions].sort(
         (a, b) => new Date(b.submittedAt) - new Date(a.submittedAt)
       );
 
@@ -170,7 +219,8 @@ class AdminSubmissionService {
         breakdown: {
           totalAssignments,
           totalQuizzes,
-          total: totalAssignments + totalQuizzes
+          totalExams,
+          total: totalAssignments + totalQuizzes + totalExams
         }
       };
     } catch (error) {
@@ -189,7 +239,7 @@ class AdminSubmissionService {
   /**
    * Get submission details by ID and type
    * @param {string} submissionId - Submission ID
-   * @param {string} type - Type: 'assignment' or 'quiz'
+   * @param {string} type - Type: 'assignment', 'quiz', or 'exam'
    * @returns {Object} Submission details
    */
   static async getSubmissionById(submissionId, type) {
@@ -246,10 +296,35 @@ class AdminSubmissionService {
           type: 'quiz',
           maxGrade: submission.quiz?.totalPoints || 100
         };
+      } else if (type === 'exam') {
+        submission = await ExamSubmission.findById(submissionId)
+          .populate({
+            path: 'exam',
+            select: 'title description dueDate totalPoints assignedBy',
+            populate: {
+              path: 'assignedBy',
+              select: 'firstName lastName email username'
+            }
+          })
+          .populate('student', 'firstName lastName email username')
+          .lean();
+
+        if (!submission) {
+          throw {
+            status: 404,
+            message: 'Exam submission not found'
+          };
+        }
+
+        return {
+          ...submission,
+          type: 'exam',
+          maxGrade: submission.exam?.totalPoints || 100
+        };
       } else {
         throw {
           status: 400,
-          message: 'Invalid type. Must be "assignment" or "quiz"'
+          message: 'Invalid type. Must be "assignment", "quiz", or "exam"'
         };
       }
     } catch (error) {

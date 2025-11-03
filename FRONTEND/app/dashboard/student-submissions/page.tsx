@@ -84,7 +84,9 @@ export default function StudentSubmissionsPage() {
   }
 
   const getTypeIcon = (type: string) => {
-    return type === "quiz" ? "🧠" : "📄"
+    if (type === "quiz") return "🧠"
+    if (type === "exam") return "📝"
+    return "📄"
   }
 
   if (authLoading || loading) {
@@ -119,7 +121,7 @@ export default function StudentSubmissionsPage() {
             </div>
 
             {/* Summary Stats */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-4 gap-4">
               <Card className="p-4">
                 <p className="text-sm text-text-secondary mb-1">Total Submissions</p>
                 <p className="text-2xl font-bold">{breakdown.total}</p>
@@ -131,6 +133,10 @@ export default function StudentSubmissionsPage() {
               <Card className="p-4">
                 <p className="text-sm text-text-secondary mb-1">Quizzes</p>
                 <p className="text-2xl font-bold">{breakdown.totalQuizzes}</p>
+              </Card>
+              <Card className="p-4">
+                <p className="text-sm text-text-secondary mb-1">Exams</p>
+                <p className="text-2xl font-bold">{breakdown.totalExams || 0}</p>
               </Card>
             </div>
 
@@ -154,6 +160,7 @@ export default function StudentSubmissionsPage() {
                     <SelectItem value="all">All Types</SelectItem>
                     <SelectItem value="assignment">Assignments</SelectItem>
                     <SelectItem value="quiz">Quizzes</SelectItem>
+                    <SelectItem value="exam">Exams</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>

@@ -44,6 +44,11 @@ const assignmentSubmissionSchema = new mongoose.Schema({
   gradedAt: {
     type: Date,
     default: null
+  },
+  status: {
+    type: String,
+    enum: ['pending', 'submitted', 'graded', 'due'],
+    default: 'pending'
   }
 }, {
   timestamps: true,
