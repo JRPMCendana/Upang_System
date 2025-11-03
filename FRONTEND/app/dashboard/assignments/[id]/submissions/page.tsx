@@ -281,14 +281,18 @@ export default function AssignmentSubmissionsPage() {
                         <div className="border-t border-border pt-4 space-y-4">
                           <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                              <Label htmlFor={`grade-${submission._id}`}>Grade (0-100)</Label>
+                              <Label htmlFor={`grade-${submission._id}`}>Grade (0-{assignment?.maxGrade || 100})</Label>
                               <Input
                                 id={`grade-${submission._id}`}
                                 type="number"
                                 min="0"
-                                max="100"
+                                max={assignment?.maxGrade || 100}
                                 value={gradeFormData.grade}
-                                onChange={(e) => handleGradeChange(parseInt(e.target.value) || 0)}
+                                onChange={(e) => {
+                                  const value = parseInt(e.target.value) || 0
+                                  const maxGrade = assignment?.maxGrade || 100
+                                  handleGradeChange(Math.min(value, maxGrade))
+                                }}
                               />
                             </div>
                           </div>
@@ -299,8 +303,15 @@ export default function AssignmentSubmissionsPage() {
                               rows={4}
                               placeholder="Provide feedback for the student..."
                               value={gradeFormData.feedback}
-                              onChange={(e) => handleFeedbackChange(e.target.value)}
+                              onChange={(e) => {
+                                const newFeedback = e.target.value
+                                if (newFeedback.length <= 1000) {
+                                  handleFeedbackChange(newFeedback)
+                                }
+                              }}
+                              className="resize-none"
                             />
+                            <p className="text-xs text-text-secondary">{gradeFormData.feedback?.length || 0}/1000 characters</p>
                           </div>
                           <div className="flex gap-2">
                             <Button

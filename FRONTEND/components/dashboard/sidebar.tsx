@@ -105,8 +105,11 @@ export function Sidebar() {
           const isDashboardLink = item.href.includes('/dashboard/student') || 
                                   item.href.includes('/dashboard/teacher') || 
                                   item.href.includes('/dashboard/admin')
+          // Check if the current path is a sub-route of this item (e.g., /dashboard/assignments/[id]/submissions)
+          const isSubRoute = pathname.startsWith(item.href + '/')
           const isActive = pathname === item.href || 
-                          (isDashboardLink && pathname === '/dashboard')
+                          (isDashboardLink && pathname === '/dashboard') ||
+                          isSubRoute
           
           return (
             <Link

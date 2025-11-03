@@ -170,6 +170,7 @@ export function CreateAssignmentDialog({ open, onOpenChange, onSubmit, loading }
               <Input
                 id="dueDate"
                 type="datetime-local"
+                min={new Date().toISOString().slice(0, 16)}
                 value={formData.dueDate}
                 onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
                 required
@@ -180,10 +181,13 @@ export function CreateAssignmentDialog({ open, onOpenChange, onSubmit, loading }
               <Input
                 id="maxGrade"
                 type="number"
-                min="0"
-                max="1000"
+                min="1"
+                max="100"
                 value={formData.maxGrade}
-                onChange={(e) => setFormData({ ...formData, maxGrade: parseInt(e.target.value) || 0 })}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value) || 1
+                  setFormData({ ...formData, maxGrade: Math.min(Math.max(value, 1), 100) })
+                }}
               />
             </div>
           </div>
