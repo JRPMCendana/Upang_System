@@ -11,8 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Upload, X, FileText, Loader2, Search } from "lucide-react"
 import type { CreateAssignmentData } from "@/types/assignment.types"
-import { userService } from "@/services/user-service"
-import type { User } from "@/types/user.types"
+import { useStudentSelection } from "@/hooks/use-student-selection"
 
 interface CreateAssignmentDialogProps {
   open: boolean
@@ -34,72 +33,34 @@ export function CreateAssignmentDialog({ open, onOpenChange, onSubmit, loading }
     studentIds: [],
   })
   const [file, setFile] = useState<File | null>(null)
-  const [students, setStudents] = useState<User[]>([])
-  const [loadingStudents, setLoadingStudents] = useState(false)
-  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([])
-  const [searchQuery, setSearchQuery] = useState("")
+
+  // Student selection hook
+  const {
+    students: filteredStudents,
+    allStudents: students,
+    selectedIds: selectedStudentIds,
+    selectedStudents,
+    searchQuery,
+    setSearchQuery,
+    loading: loadingStudents,
+    toggleStudent,
+    removeStudent,
+    toggleAllFiltered: toggleAllStudents,
+    clearSelection,
+    clearSearch,
+    fetchStudents,
+  } = useStudentSelection({ autoFetch: false })
 
   // Fetch students when dialog opens and reset state when it closes
   useEffect(() => {
-    if (!open) {
-      // Reset state when dialog closes
-      setStudents([])
-      setSelectedStudentIds([])
-      setSearchQuery("")
-      return
-    }
-
-    const fetchStudents = async () => {
-      setLoadingStudents(true)
-      try {
-        const response = await userService.getAssignedStudents(1, 100)
-        setStudents(response.data)
-      } catch (error) {
-        console.error("Error fetching students:", error)
-      } finally {
-        setLoadingStudents(false)
-      }
-    }
-
-    fetchStudents()
-  }, [open])
-
-  // Filter students based on search query
-  const filteredStudents = students.filter(student => {
-    if (!searchQuery.trim()) return true
-    const searchLower = searchQuery.toLowerCase()
-    const fullName = `${student.firstName} ${student.lastName}`.toLowerCase()
-    const email = student.email.toLowerCase()
-    return fullName.includes(searchLower) || email.includes(searchLower)
-  })
-
-  // Get selected students for badge display
-  const selectedStudents = students.filter(s => selectedStudentIds.includes(s._id))
-
-  const toggleStudent = (studentId: string) => {
-    setSelectedStudentIds(prev => 
-      prev.includes(studentId) 
-        ? prev.filter(id => id !== studentId)
-        : [...prev, studentId]
-    )
-  }
-
-  const removeStudent = (studentId: string) => {
-    setSelectedStudentIds(prev => prev.filter(id => id !== studentId))
-  }
-
-  const toggleAllStudents = () => {
-    const filteredIds = filteredStudents.map(s => s._id)
-    const allFilteredSelected = filteredIds.every(id => selectedStudentIds.includes(id))
-    
-    if (allFilteredSelected) {
-      // Deselect all filtered students
-      setSelectedStudentIds(prev => prev.filter(id => !filteredIds.includes(id)))
+    if (open) {
+      fetchStudents()
     } else {
-      // Select all filtered students (merge with existing selections)
-      setSelectedStudentIds(prev => [...new Set([...prev, ...filteredIds])])
+      // Reset state when dialog closes
+      clearSelection()
+      clearSearch()
     }
-  }
+  }, [open, fetchStudents, clearSelection, clearSearch])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -135,7 +96,7 @@ export function CreateAssignmentDialog({ open, onOpenChange, onSubmit, loading }
       studentIds: [],
     })
     setFile(null)
-    setSelectedStudentIds([])
+    clearSelection()
   }
 
   return (
