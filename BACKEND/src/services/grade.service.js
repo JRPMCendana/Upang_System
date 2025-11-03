@@ -6,13 +6,10 @@ const User = require('../models/User.model');
 const DbUtils = require('../utils/db.utils');
 
 class GradeService {
-  /**
-   * Get grade statistics for a teacher's class
-   * Aggregates data from all assignments and quizzes
-   */
+
   static async getTeacherGradeStats(teacherId) {
     try {
-      // Get all students assigned to this teacher
+
       const students = await User.find({
         role: 'student',
         assignedTeacher: teacherId
@@ -20,7 +17,7 @@ class GradeService {
 
       const studentIds = students.map(s => s._id);
 
-      // Get all assignments and quizzes created by this teacher
+
       const [assignments, quizzes] = await Promise.all([
         Assignment.find({ assignedBy: teacherId }),
         Quiz.find({ assignedBy: teacherId })
@@ -29,7 +26,7 @@ class GradeService {
       const assignmentIds = assignments.map(a => a._id);
       const quizIds = quizzes.map(q => q._id);
 
-      // Get all submissions
+
       const [assignmentSubmissions, quizSubmissions] = await Promise.all([
         AssignmentSubmission.find({
           assignment: { $in: assignmentIds },
@@ -41,7 +38,7 @@ class GradeService {
         }).populate('quiz', 'title').populate('student', 'firstName lastName email')
       ]);
 
-      // Collect all graded submissions
+
       const gradedAssignmentSubs = assignmentSubmissions.filter(
         sub => sub.grade !== null && sub.grade !== undefined && sub.isSubmitted
       );
@@ -49,31 +46,90 @@ class GradeService {
         sub => sub.grade !== null && sub.grade !== undefined && sub.isSubmitted
       );
 
-      // Calculate class average (from all graded submissions)
-      const allGrades = [
-        ...gradedAssignmentSubs.map(s => s.grade),
-        ...gradedQuizSubs.map(s => s.grade)
-      ];
+      // Calculate percentage grades (grade / maxScore * 100)
+      // For assignments, assume maxScore of 100 if not specified
+      // For quizzes, use totalPoints field
+      const percentageGrades = [];
+      
+      gradedAssignmentSubs.forEach(sub => {
+        const assignment = assignments.find(a => a._id.toString() === sub.assignment._id.toString());
+        const maxScore = assignment?.totalPoints || 100; // Default to 100 if not set
+        const percentage = (sub.grade / maxScore) * 100;
+        percentageGrades.push(Math.round(percentage * 10) / 10); // Round to 1 decimal
+      });
 
-      const classAverage = allGrades.length > 0
-        ? Math.round(allGrades.reduce((sum, grade) => sum + grade, 0) / allGrades.length)
+      gradedQuizSubs.forEach(sub => {
+        const quiz = quizzes.find(q => q._id.toString() === sub.quiz._id.toString());
+        const maxScore = quiz?.totalPoints || 100; // Default to 100 if not set
+        const percentage = (sub.grade / maxScore) * 100;
+        percentageGrades.push(Math.round(percentage * 10) / 10); // Round to 1 decimal
+      });
+
+      // Calculate class average from percentage grades
+      const classAverage = percentageGrades.length > 0
+        ? Math.round(percentageGrades.reduce((sum, grade) => sum + grade, 0) / percentageGrades.length)
         : 0;
 
-      // Calculate pass rate (>= 70 is passing)
-      const passingCount = allGrades.filter(g => g >= 70).length;
-      const passRate = allGrades.length > 0
-        ? Math.round((passingCount / allGrades.length) * 100)
-        : 0;
-      const passingStudents = `${passingCount}/${allGrades.length} students`;
+  
+      // Calculate pass rate based on students, not individual submissions
+      // Track which students have at least one passing grade (>= 70%)
+      const studentPassingStatus = new Map();
+      
+      // Check assignment submissions for passing grades
+      gradedAssignmentSubs.forEach(sub => {
+        const assignment = assignments.find(a => a._id.toString() === sub.assignment._id.toString());
+        const maxScore = assignment?.totalPoints || 100;
+        const percentage = (sub.grade / maxScore) * 100;
+        const studentId = sub.student._id.toString();
+        
+        if (!studentPassingStatus.has(studentId)) {
+          studentPassingStatus.set(studentId, { hasPassing: false, hasAnyGrade: false });
+        }
+        
+        const status = studentPassingStatus.get(studentId);
+        status.hasAnyGrade = true;
+        if (percentage >= 70) {
+          status.hasPassing = true;
+        }
+      });
 
-      // Calculate average submissions per assignment
+      // Check quiz submissions for passing grades
+      gradedQuizSubs.forEach(sub => {
+        const quiz = quizzes.find(q => q._id.toString() === sub.quiz._id.toString());
+        const maxScore = quiz?.totalPoints || 100;
+        const percentage = (sub.grade / maxScore) * 100;
+        const studentId = sub.student._id.toString();
+        
+        if (!studentPassingStatus.has(studentId)) {
+          studentPassingStatus.set(studentId, { hasPassing: false, hasAnyGrade: false });
+        }
+        
+        const status = studentPassingStatus.get(studentId);
+        status.hasAnyGrade = true;
+        if (percentage >= 70) {
+          status.hasPassing = true;
+        }
+      });
+
+      // Count students with at least one passing grade
+      const passingStudentsCount = Array.from(studentPassingStatus.values())
+        .filter(status => status.hasPassing).length;
+      const totalStudentsWithGrades = Array.from(studentPassingStatus.values())
+        .filter(status => status.hasAnyGrade).length;
+      
+      const passRate = totalStudentsWithGrades > 0
+        ? Math.round((passingStudentsCount / totalStudentsWithGrades) * 100)
+        : 0;
+      const passingStudents = `${passingStudentsCount}/${totalStudentsWithGrades} students`;
+
+  
       const totalSubmissions = assignmentSubmissions.filter(s => s.isSubmitted).length +
                                quizSubmissions.filter(s => s.isSubmitted).length;
       const avgSubmissions = assignments.length > 0
         ? Math.round(totalSubmissions / assignments.length)
         : 0;
 
-      // Check grading status
+
       const pendingGrading = assignmentSubmissions.filter(
         s => s.isSubmitted && (s.grade === null || s.grade === undefined)
       ).length + quizSubmissions.filter(
@@ -82,15 +138,15 @@ class GradeService {
 
       const gradingStatus = pendingGrading === 0 ? 'All Current' : `${pendingGrading} Pending`;
 
-      // Grade distribution (A: 90-100, B: 80-89, C: 70-79, F: <70)
+      // Grade distribution based on percentages (A: 90-100%, B: 80-89%, C: 70-79%, F: <70%)
       const distribution = {
-        A: allGrades.filter(g => g >= 90 && g <= 100).length,
-        B: allGrades.filter(g => g >= 80 && g < 90).length,
-        C: allGrades.filter(g => g >= 70 && g < 80).length,
-        F: allGrades.filter(g => g < 70).length
+        A: percentageGrades.filter(g => g >= 90 && g <= 100).length,
+        B: percentageGrades.filter(g => g >= 80 && g < 90).length,
+        C: percentageGrades.filter(g => g >= 70 && g < 80).length,
+        F: percentageGrades.filter(g => g < 70).length
       };
 
-      const totalGraded = allGrades.length;
+      const totalGraded = percentageGrades.length;
       const gradeDistribution = [
         {
           name: 'A (90-100)',
@@ -118,16 +174,19 @@ class GradeService {
         }
       ];
 
-      // Performance by Assignment/Quiz
       const assignmentPerformance = assignments.map(assignment => {
         const subs = assignmentSubmissions.filter(s => 
           s.assignment._id.toString() === assignment._id.toString()
         );
         const gradedSubs = subs.filter(s => s.grade !== null && s.isSubmitted);
-        const average = gradedSubs.length > 0
-          ? Math.round(gradedSubs.reduce((sum, s) => sum + s.grade, 0) / gradedSubs.length)
+        const maxScore = assignment.totalPoints || 100; 
+        
+        // Calculate percentage grades
+        const percentageGrades = gradedSubs.map(s => (s.grade / maxScore) * 100);
+        const average = percentageGrades.length > 0
+          ? Math.round(percentageGrades.reduce((sum, p) => sum + p, 0) / percentageGrades.length)
           : 0;
-        const passed = gradedSubs.filter(s => s.grade >= 70).length;
+        const passed = percentageGrades.filter(p => p >= 70).length;
 
         return {
           name: assignment.title,
@@ -143,10 +202,14 @@ class GradeService {
           s.quiz._id.toString() === quiz._id.toString()
         );
         const gradedSubs = subs.filter(s => s.grade !== null && s.isSubmitted);
-        const average = gradedSubs.length > 0
-          ? Math.round(gradedSubs.reduce((sum, s) => sum + s.grade, 0) / gradedSubs.length)
+        const maxScore = quiz.totalPoints || 100; // Default to 100 if not set
+        
+        // Calculate percentage grades
+        const percentageGrades = gradedSubs.map(s => (s.grade / maxScore) * 100);
+        const average = percentageGrades.length > 0
+          ? Math.round(percentageGrades.reduce((sum, p) => sum + p, 0) / percentageGrades.length)
           : 0;
-        const passed = gradedSubs.filter(s => s.grade >= 70).length;
+        const passed = percentageGrades.filter(p => p >= 70).length;
 
         return {
           name: quiz.title,
@@ -223,28 +286,53 @@ class GradeService {
         sub => sub.grade !== null && sub.grade !== undefined && sub.isSubmitted
       );
 
-      // Calculate overall average
-      const allGrades = [
-        ...gradedAssignmentSubs.map(s => s.grade),
-        ...gradedQuizSubs.map(s => s.grade)
-      ];
+      // Calculate percentage grades (grade / maxScore * 100)
+      const percentageGrades = [];
+      
+      gradedAssignmentSubs.forEach(sub => {
+        const assignment = assignments.find(a => a._id.toString() === sub.assignment._id.toString());
+        const maxScore = assignment?.totalPoints || 100; // Default to 100 if not set
+        const percentage = (sub.grade / maxScore) * 100;
+        percentageGrades.push(Math.round(percentage * 10) / 10); // Round to 1 decimal
+      });
 
-      const overallAverage = allGrades.length > 0
-        ? Math.round(allGrades.reduce((sum, grade) => sum + grade, 0) / allGrades.length)
+      gradedQuizSubs.forEach(sub => {
+        const quiz = quizzes.find(q => q._id.toString() === sub.quiz._id.toString());
+        const maxScore = quiz?.totalPoints || 100; // Default to 100 if not set
+        const percentage = (sub.grade / maxScore) * 100;
+        percentageGrades.push(Math.round(percentage * 10) / 10); // Round to 1 decimal
+      });
+
+      // Calculate overall average from percentage grades
+      const overallAverage = percentageGrades.length > 0
+        ? Math.round(percentageGrades.reduce((sum, grade) => sum + grade, 0) / percentageGrades.length)
         : 0;
 
-      // Get highest grade
-      const highestGrade = allGrades.length > 0 ? Math.max(...allGrades) : 0;
-      const highestGradeItem = [
-        ...gradedAssignmentSubs.map(s => ({ grade: s.grade, name: s.assignment.title, type: 'assignment' })),
-        ...gradedQuizSubs.map(s => ({ grade: s.grade, name: s.quiz.title, type: 'quiz' }))
-      ].find(item => item.grade === highestGrade);
+      // Get highest grade (as percentage)
+      const highestGrade = percentageGrades.length > 0 ? Math.max(...percentageGrades) : 0;
+      
+      // Find highest grade item (using percentage for comparison)
+      const allGradeItems = [
+        ...gradedAssignmentSubs.map(s => {
+          const assignment = assignments.find(a => a._id.toString() === s.assignment._id.toString());
+          const maxScore = assignment?.totalPoints || 100;
+          const percentage = (s.grade / maxScore) * 100;
+          return { grade: Math.round(percentage * 10) / 10, name: s.assignment.title, type: 'assignment' };
+        }),
+        ...gradedQuizSubs.map(s => {
+          const quiz = quizzes.find(q => q._id.toString() === s.quiz._id.toString());
+          const maxScore = quiz?.totalPoints || 100;
+          const percentage = (s.grade / maxScore) * 100;
+          return { grade: Math.round(percentage * 10) / 10, name: s.quiz.title, type: 'quiz' };
+        })
+      ];
+      const highestGradeItem = allGradeItems.find(item => item.grade === highestGrade);
 
       // Count completed
       const completed = gradedAssignmentSubs.length + gradedQuizSubs.length;
       const total = assignments.length + quizzes.length;
 
-      // Grade trend over time (group by month)
+      // Grade trend over time (group by month) - use percentage grades
       const gradeTrend = [];
       const monthlyGrades = new Map();
 
@@ -252,10 +340,22 @@ class GradeService {
         const date = new Date(sub.gradedAt || sub.submittedAt);
         const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
         
+        // Calculate percentage for this submission
+        let percentage = 0;
+        if (sub.assignment) {
+          const assignment = assignments.find(a => a._id.toString() === sub.assignment._id.toString());
+          const maxScore = assignment?.totalPoints || 100;
+          percentage = (sub.grade / maxScore) * 100;
+        } else if (sub.quiz) {
+          const quiz = quizzes.find(q => q._id.toString() === sub.quiz._id.toString());
+          const maxScore = quiz?.totalPoints || 100;
+          percentage = (sub.grade / maxScore) * 100;
+        }
+        
         if (!monthlyGrades.has(monthKey)) {
           monthlyGrades.set(monthKey, []);
         }
-        monthlyGrades.get(monthKey).push(sub.grade);
+        monthlyGrades.get(monthKey).push(Math.round(percentage * 10) / 10);
       });
 
       monthlyGrades.forEach((grades, month) => {
@@ -268,24 +368,34 @@ class GradeService {
 
       gradeTrend.sort((a, b) => a.month.localeCompare(b.month));
 
-      // Recent grades (last 10)
+      // Recent grades (last 10) - convert to percentages
       const recentGrades = [
-        ...gradedAssignmentSubs.map(s => ({
-          id: s._id.toString(),
-          name: s.assignment.title,
-          grade: s.grade,
-          type: 'assignment',
-          status: 'submitted',
-          date: s.gradedAt || s.submittedAt
-        })),
-        ...gradedQuizSubs.map(s => ({
-          id: s._id.toString(),
-          name: s.quiz.title,
-          grade: s.grade,
-          type: 'quiz',
-          status: 'submitted',
-          date: s.gradedAt || s.submittedAt
-        }))
+        ...gradedAssignmentSubs.map(s => {
+          const assignment = assignments.find(a => a._id.toString() === s.assignment._id.toString());
+          const maxScore = assignment?.totalPoints || 100;
+          const percentage = Math.round((s.grade / maxScore) * 100);
+          return {
+            id: s._id.toString(),
+            name: s.assignment.title,
+            grade: percentage,
+            type: 'assignment',
+            status: 'submitted',
+            date: s.gradedAt || s.submittedAt
+          };
+        }),
+        ...gradedQuizSubs.map(s => {
+          const quiz = quizzes.find(q => q._id.toString() === s.quiz._id.toString());
+          const maxScore = quiz?.totalPoints || 100;
+          const percentage = Math.round((s.grade / maxScore) * 100);
+          return {
+            id: s._id.toString(),
+            name: s.quiz.title,
+            grade: percentage,
+            type: 'quiz',
+            status: 'submitted',
+            date: s.gradedAt || s.submittedAt
+          };
+        })
       ]
         .sort((a, b) => new Date(b.date) - new Date(a.date))
         .slice(0, 10);
@@ -339,6 +449,143 @@ class GradeService {
       throw {
         status: dbError.status,
         message: dbError.message || 'Failed to get student grade statistics'
+      };
+    }
+  }
+
+  /**
+   * Get detailed grade breakdown for a specific student (for teachers to view)
+   */
+  static async getStudentGradeDetails(studentId, teacherId) {
+    try {
+      // Verify student exists and is assigned to this teacher
+      const student = await User.findById(studentId);
+      if (!student || student.role !== 'student') {
+        throw {
+          status: 404,
+          message: 'Student not found'
+        };
+      }
+
+      if (!student.assignedTeacher || student.assignedTeacher.toString() !== teacherId) {
+        throw {
+          status: 403,
+          message: 'Access denied. This student is not assigned to you.'
+        };
+      }
+
+      // Get all assignments and quizzes created by this teacher
+      const [assignments, quizzes] = await Promise.all([
+        Assignment.find({ assignedBy: teacherId, assignedTo: studentId }),
+        Quiz.find({ assignedBy: teacherId, assignedTo: studentId })
+      ]);
+
+      const assignmentIds = assignments.map(a => a._id);
+      const quizIds = quizzes.map(q => q._id);
+
+      // Get all submissions for this student
+      const [assignmentSubmissions, quizSubmissions] = await Promise.all([
+        AssignmentSubmission.find({
+          assignment: { $in: assignmentIds },
+          student: studentId
+        }).populate('assignment', 'title dueDate').sort({ createdAt: -1 }),
+        QuizSubmission.find({
+          quiz: { $in: quizIds },
+          student: studentId
+        }).populate('quiz', 'title totalPoints').sort({ createdAt: -1 })
+      ]);
+
+      // Format assignment grades
+      const assignmentGrades = assignmentSubmissions.map(sub => {
+        const assignment = assignments.find(a => a._id.toString() === sub.assignment._id.toString());
+        const maxScore = assignment?.totalPoints || 100;
+        const percentage = sub.grade !== null && sub.grade !== undefined
+          ? Math.round((sub.grade / maxScore) * 100)
+          : null;
+        
+        return {
+          id: sub._id.toString(),
+          type: 'assignment',
+          source: sub.assignment.title,
+          sourceId: sub.assignment._id.toString(),
+          rawGrade: sub.grade,
+          maxScore,
+          percentage,
+          submittedAt: sub.submittedAt,
+          gradedAt: sub.gradedAt,
+          dueDate: sub.assignment.dueDate,
+          isSubmitted: sub.isSubmitted,
+          feedback: sub.feedback || null
+        };
+      });
+
+      // Format quiz grades
+      const quizGrades = quizSubmissions.map(sub => {
+        const quiz = quizzes.find(q => q._id.toString() === sub.quiz._id.toString());
+        const maxScore = quiz?.totalPoints || 100;
+        const percentage = sub.grade !== null && sub.grade !== undefined
+          ? Math.round((sub.grade / maxScore) * 100)
+          : null;
+        
+        return {
+          id: sub._id.toString(),
+          type: 'quiz',
+          source: sub.quiz.title,
+          sourceId: sub.quiz._id.toString(),
+          rawGrade: sub.grade,
+          maxScore,
+          percentage,
+          submittedAt: sub.submittedAt,
+          gradedAt: sub.gradedAt,
+          dueDate: null,
+          isSubmitted: sub.isSubmitted,
+          feedback: sub.feedback || null
+        };
+      });
+
+      // Combine all grades and sort by date
+      const allGrades = [...assignmentGrades, ...quizGrades].sort((a, b) => {
+        const dateA = a.gradedAt || a.submittedAt || new Date(0);
+        const dateB = b.gradedAt || b.submittedAt || new Date(0);
+        return new Date(dateB) - new Date(dateA);
+      });
+
+      // Calculate statistics
+      const gradedItems = allGrades.filter(g => g.percentage !== null);
+      const overallAverage = gradedItems.length > 0
+        ? Math.round(gradedItems.reduce((sum, g) => sum + g.percentage, 0) / gradedItems.length)
+        : 0;
+
+      // Group by type
+      const byType = {
+        assignments: assignmentGrades,
+        quizzes: quizGrades
+      };
+
+      return {
+        student: {
+          id: student._id.toString(),
+          username: student.username,
+          firstName: student.firstName,
+          lastName: student.lastName,
+          email: student.email
+        },
+        overallAverage,
+        totalItems: allGrades.length,
+        gradedItems: gradedItems.length,
+        pendingItems: allGrades.filter(g => g.isSubmitted && g.percentage === null).length,
+        byType,
+        allGrades
+      };
+    } catch (error) {
+      if (error.status) {
+        throw error;
+      }
+
+      const dbError = DbUtils.handleError(error);
+      throw {
+        status: dbError.status,
+        message: dbError.message || 'Failed to get student grade details'
       };
     }
   }

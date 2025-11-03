@@ -52,6 +52,40 @@ class GradeController {
       next(error);
     }
   }
+
+  /**
+   * Get detailed grade breakdown for a specific student (teacher view)
+   */
+  static async getStudentGradeDetails(req, res, next) {
+    try {
+      const { studentId } = req.params;
+      const teacherId = req.user.id;
+
+      // Verify user is a teacher
+      if (req.user.role !== 'teacher') {
+        return res.status(403).json({
+          error: 'Forbidden',
+          message: 'Only teachers can view student grade details'
+        });
+      }
+
+      if (!studentId) {
+        return res.status(400).json({
+          error: 'Validation Error',
+          message: 'Student ID is required'
+        });
+      }
+
+      const details = await GradeService.getStudentGradeDetails(studentId, teacherId);
+
+      res.status(200).json({
+        success: true,
+        data: details
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = GradeController;

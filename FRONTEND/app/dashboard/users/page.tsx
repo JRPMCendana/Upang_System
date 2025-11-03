@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Users as UsersIcon, Search, Plus, Shield, Mail, MoreVertical, Pencil, Trash2, UserX, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
+import { Users as UsersIcon, Search, Plus, Shield, Mail, MoreVertical, Pencil, Trash2, UserX, ChevronLeft, ChevronRight, Loader2, GraduationCap } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect, useState, useMemo } from "react"
@@ -258,15 +258,20 @@ export default function UsersPage() {
                     <tbody>
                       {filteredUsers.map((u) => (
                         <tr key={u._id} className="border-t border-border hover:bg-bg-secondary/70">
-                          <td className="px-6 py-3 font-medium">{u.username}</td>
-                          <td className="px-6 py-3 text-text-secondary">
-                            {getUserFullName(u)}
+                          <td className="px-6 py-3 align-middle">
+                            <span className="font-medium">{u.username}</span>
                           </td>
-                          <td className="px-6 py-3 text-text-secondary flex items-center gap-2">
-                            <Mail className="w-4 h-4" /> {u.email}
+                          <td className="px-6 py-3 align-middle">
+                            <span className="text-text-secondary">{getUserFullName(u)}</span>
                           </td>
-                          <td className="px-6 py-3">{roleBadge(u.role)}</td>
-                          <td className="px-6 py-3">
+                          <td className="px-6 py-3 align-middle">
+                            <div className="flex items-center gap-2">
+                              <Mail className="w-4 h-4 flex-shrink-0" />
+                              <span className="text-text-secondary">{u.email}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-3 align-middle">{roleBadge(u.role)}</td>
+                          <td className="px-6 py-3 align-middle">
                             <div className="flex items-center gap-2">
                               {statusDot(u.status)}
                               <span className="capitalize text-text-secondary">{u.status}</span>
@@ -275,14 +280,25 @@ export default function UsersPage() {
                           <td className="px-6 py-3 text-right">
                             <div className="flex items-center justify-end gap-2">
                               {isTeacher ? (
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  className="gap-1"
-                                  onClick={() => setStudentToView(u)}
-                                >
-                                  View Profile
-                                </Button>
+                                <>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="gap-1"
+                                    onClick={() => router.push(`/dashboard/students/${u._id}/grades`)}
+                                  >
+                                    <GraduationCap className="w-4 h-4" />
+                                    View Grades
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="gap-1"
+                                    onClick={() => setStudentToView(u)}
+                                  >
+                                    View Profile
+                                  </Button>
+                                </>
                               ) : (
                                 <>
                                   <Button 

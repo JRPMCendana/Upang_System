@@ -9,5 +9,8 @@ router.get('/teacher', authMiddleware, GradeController.getTeacherGradeStats);
 // Student grade statistics
 router.get('/student', authMiddleware, GradeController.getStudentGradeStats);
 
+// Student grade details (teacher view)
+router.get('/student/:studentId', authMiddleware, GradeController.getStudentGradeDetails);
+
 module.exports = router;
 

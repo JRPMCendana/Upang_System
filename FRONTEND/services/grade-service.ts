@@ -76,6 +76,50 @@ class GradeService {
       method: "GET",
     })
   }
+
+  /**
+   * Get detailed grade breakdown for a specific student (teacher view)
+   */
+  async getStudentGradeDetails(studentId: string): Promise<{ data: StudentGradeDetails }> {
+    return apiClient.request<{ data: StudentGradeDetails }>(`/grades/student/${studentId}`, {
+      method: "GET",
+    })
+  }
+}
+
+// Student grade details (for teacher view)
+export interface StudentGradeDetails {
+  student: {
+    id: string
+    username: string
+    firstName?: string
+    lastName?: string
+    email: string
+  }
+  overallAverage: number
+  totalItems: number
+  gradedItems: number
+  pendingItems: number
+  byType: {
+    assignments: Array<GradeItem>
+    quizzes: Array<GradeItem>
+  }
+  allGrades: Array<GradeItem>
+}
+
+export interface GradeItem {
+  id: string
+  type: 'assignment' | 'quiz'
+  source: string // Assignment/Quiz title
+  sourceId: string
+  rawGrade: number | null
+  maxScore: number
+  percentage: number | null
+  submittedAt: string | Date
+  gradedAt: string | Date | null
+  dueDate: string | Date | null
+  isSubmitted: boolean
+  feedback: string | null
 }
 
 export const gradeService = new GradeService()

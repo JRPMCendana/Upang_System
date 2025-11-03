@@ -341,7 +341,7 @@ export default function GradesPage() {
                       <YAxis domain={[0, 100]} />
                       <Tooltip />
                       <Legend />
-                      <Bar dataKey="average" fill="#2563eb" name="Average Grade" />
+                      <Bar dataKey="average" fill="#2563eb" name="Average Grade Percentage" />
                       <Bar dataKey="passed" fill="#10b981" name="Passed" />
                     </BarChart>
                   </ResponsiveContainer>

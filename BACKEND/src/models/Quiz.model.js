@@ -18,7 +18,6 @@ const quizSchema = new mongoose.Schema({
     trim: true,
     validate: {
       validator: function(v) {
-        // Allow null or empty, but if provided must be valid URL
         return !v || /^https?:\/\/.+\..+/.test(v);
       },
       message: 'Invalid URL format. Must start with http:// or https://'
