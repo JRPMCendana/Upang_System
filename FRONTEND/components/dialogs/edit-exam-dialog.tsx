@@ -45,11 +45,27 @@ export function EditExamDialog({ open, onOpenChange, examId, initial, onUpdated 
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>Title</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+            <Input 
+              value={title} 
+              onChange={(e) => {
+                if (e.target.value.length <= 100) {
+                  setTitle(e.target.value)
+                }
+              }} 
+            />
+            <p className="text-xs text-text-secondary">{title.length}/100 characters</p>
           </div>
           <div className="space-y-2">
             <Label>Description</Label>
-            <Input value={description} onChange={(e) => setDescription(e.target.value)} />
+            <Input 
+              value={description} 
+              onChange={(e) => {
+                if (e.target.value.length <= 500) {
+                  setDescription(e.target.value)
+                }
+              }} 
+            />
+            <p className="text-xs text-text-secondary">{description.length}/500 characters</p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">

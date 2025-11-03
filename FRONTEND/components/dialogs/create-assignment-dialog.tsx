@@ -101,7 +101,7 @@ export function CreateAssignmentDialog({ open, onOpenChange, onSubmit, loading }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" showCloseButton={false}>
         <DialogHeader>
           <DialogTitle>Create New Assignment</DialogTitle>
           <p className="text-sm text-text-secondary">Fill in the details to create a new assignment for your students</p>
@@ -115,9 +115,14 @@ export function CreateAssignmentDialog({ open, onOpenChange, onSubmit, loading }
               id="title"
               placeholder="e.g., React Hooks Implementation"
               value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              onChange={(e) => {
+                if (e.target.value.length <= 100) {
+                  setFormData({ ...formData, title: e.target.value })
+                }
+              }}
               required
             />
+            <p className="text-xs text-text-secondary">{formData.title.length}/100 characters</p>
           </div>
 
           {/* Description */}
@@ -127,10 +132,17 @@ export function CreateAssignmentDialog({ open, onOpenChange, onSubmit, loading }
               id="description"
               placeholder="Brief description of the assignment..."
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) => {
+                if (e.target.value.length <= 500) {
+                  setFormData({ ...formData, description: e.target.value })
+                }
+              }}
               rows={3}
+              className="resize-none max-h-24 overflow-y-auto"
+              style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
               required
             />
+            <p className="text-xs text-text-secondary">{formData.description.length}/500 characters</p>
           </div>
 
           {/* Instructions */}
@@ -140,9 +152,15 @@ export function CreateAssignmentDialog({ open, onOpenChange, onSubmit, loading }
               id="instructions"
               placeholder="Provide detailed instructions for students..."
               value={formData.instructions}
-              onChange={(e) => setFormData({ ...formData, instructions: e.target.value })}
+              onChange={(e) => {
+                if (e.target.value.length <= 2000) {
+                  setFormData({ ...formData, instructions: e.target.value })
+                }
+              }}
               rows={4}
+              className="resize-none"
             />
+            <p className="text-xs text-text-secondary">{(formData.instructions || "").length}/2000 characters</p>
           </div>
 
           {/* Due Date and Points */}
@@ -189,10 +207,10 @@ export function CreateAssignmentDialog({ open, onOpenChange, onSubmit, loading }
               {filteredStudents.length > 0 && (
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   onClick={toggleAllStudents}
-                  className="h-auto py-1 px-2 text-xs"
+                  className="h-8"
                 >
                   {filteredStudents.length > 0 && filteredStudents.every(s => selectedStudentIds.includes(s._id)) ? "Deselect All" : "Select All"}
                 </Button>

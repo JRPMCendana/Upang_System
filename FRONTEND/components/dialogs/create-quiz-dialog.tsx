@@ -107,10 +107,15 @@ export function CreateQuizDialog({ open, onOpenChange, onSubmit, loading }: Crea
             <Input
               id="title"
               value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              onChange={(e) => {
+                if (e.target.value.length <= 100) {
+                  setFormData({ ...formData, title: e.target.value })
+                }
+              }}
               placeholder="Enter quiz title"
               required
             />
+            <p className="text-xs text-text-secondary">{formData.title.length}/100 characters</p>
           </div>
 
           {/* Description */}
@@ -119,11 +124,18 @@ export function CreateQuizDialog({ open, onOpenChange, onSubmit, loading }: Crea
             <Textarea
               id="description"
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) => {
+                if (e.target.value.length <= 500) {
+                  setFormData({ ...formData, description: e.target.value })
+                }
+              }}
               placeholder="Enter quiz description"
               rows={3}
+              className="resize-none max-h-24 overflow-y-auto"
+              style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}
               required
             />
+            <p className="text-xs text-text-secondary">{formData.description.length}/500 characters</p>
           </div>
 
           {/* Quiz Link (Google Forms) */}
