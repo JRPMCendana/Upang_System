@@ -157,13 +157,21 @@ class ExamService {
       return {
         exams: examsWithStats,
         pagination: {
-          currentPage: page,
-          limit,
+          currentPage: parseInt(page, 10),
+          limit: parseInt(limit, 10),
           totalItems: total,
-          totalPages: Math.ceil(total / limit),
+          totalPages: Math.ceil(total / parseInt(limit, 10)),
         },
       };
     } catch (error) {
+      // Log the actual error for debugging
+      console.error('Error in getExamsByTeacher:', error);
+      
+      // If it's already a formatted error, throw it as is
+      if (error.status) {
+        throw error;
+      }
+      
       const dbError = DbUtils.handleError(error);
       throw { status: dbError.status, message: dbError.message || 'Failed to get exams' };
     }
@@ -173,14 +181,22 @@ class ExamService {
     try {
       const skip = (page - 1) * limit;
       const ExamSubmission = require('../models/ExamSubmission.model');
-      const ObjectId = require('mongoose').Types.ObjectId;
+      const mongoose = require('mongoose');
+      const ObjectId = mongoose.Types.ObjectId;
+
+      // Validate studentId is a valid ObjectId
+      if (!mongoose.Types.ObjectId.isValid(studentId)) {
+        throw { status: 400, message: 'Invalid student ID format' };
+      }
+
+      const studentObjectId = new ObjectId(studentId);
 
       const [exams, total] = await Promise.all([
         Exam.aggregate([
-          { $match: { assignedTo: new ObjectId(studentId) } },
+          { $match: { assignedTo: studentObjectId } },
           { $sort: { createdAt: -1 } },
           { $skip: skip },
-          { $limit: limit },
+          { $limit: parseInt(limit, 10) },
           {
             $lookup: {
               from: 'users',
@@ -193,7 +209,7 @@ class ExamService {
           {
             $lookup: {
               from: 'exam_submissions',
-              let: { examId: '$_id', studentId: new ObjectId(studentId) },
+              let: { examId: '$_id', studentId: studentObjectId },
               pipeline: [
                 {
                   $match: {
@@ -227,25 +243,6 @@ class ExamService {
                   },
                   else: null
                 }
-              },
-              // Calculate status based on submission
-              submissionStatus: {
-                $cond: {
-                  if: { $gt: [{ $size: '$submissions' }, 0] },
-                  then: {
-                    $ifNull: [
-                      { $arrayElemAt: ['$submissions.status', 0] },
-                      'pending'
-                    ]
-                  },
-                  else: {
-                    $cond: {
-                      if: { $and: ['$dueDate', { $lt: ['$dueDate', new Date()] }] },
-                      then: 'due',
-                      else: 'pending'
-                    }
-                  }
-                }
               }
             }
           },
@@ -263,13 +260,21 @@ class ExamService {
       return {
         exams,
         pagination: {
-          currentPage: page,
-          limit,
+          currentPage: parseInt(page, 10),
+          limit: parseInt(limit, 10),
           totalItems: total,
-          totalPages: Math.ceil(total / limit),
+          totalPages: Math.ceil(total / parseInt(limit, 10)),
         },
       };
     } catch (error) {
+      // Log the actual error for debugging
+      console.error('Error in getExamsByStudent:', error);
+      
+      // If it's already a formatted error, throw it as is
+      if (error.status) {
+        throw error;
+      }
+      
       const dbError = DbUtils.handleError(error);
       throw { status: dbError.status, message: dbError.message || 'Failed to get exams' };
     }
