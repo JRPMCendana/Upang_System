@@ -6,7 +6,7 @@ const { deleteFileFromGridFS } = require('../middleware/upload.middleware');
 class QuizService {
   static async createQuiz(teacherId, quizData) {
     try {
-      const { title, description, quizLink, dueDate, studentIds, document, documentName, documentType } = quizData;
+      const { title, description, quizLink, dueDate, totalPoints, studentIds, document, documentName, documentType } = quizData;
 
       if (!title || !description) {
         throw {
@@ -68,6 +68,7 @@ class QuizService {
         description,
         quizLink: quizLink || null,
         dueDate: dueDate ? new Date(dueDate) : null,
+        totalPoints: totalPoints || 100,
         assignedBy: teacherId,
         assignedTo: studentIds,
         document: document || null,
@@ -172,12 +173,72 @@ class QuizService {
 
       const skip = (pageNum - 1) * limitNum;
 
+      // Use aggregation to include submission data
+      const QuizSubmission = require('../models/QuizSubmission.model');
+      const ObjectId = require('mongoose').Types.ObjectId;
+
       const [quizzes, total] = await Promise.all([
-        Quiz.find({ assignedTo: studentId })
-          .populate('assignedBy', 'firstName lastName email username')
-          .sort({ createdAt: -1 })
-          .skip(skip)
-          .limit(limitNum),
+        Quiz.aggregate([
+          { $match: { assignedTo: new ObjectId(studentId) } },
+          { $sort: { createdAt: -1 } },
+          { $skip: skip },
+          { $limit: limitNum },
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'assignedBy',
+              foreignField: '_id',
+              as: 'assignedBy'
+            }
+          },
+          { $unwind: '$assignedBy' },
+          {
+            $lookup: {
+              from: 'quiz_submissions',
+              let: { quizId: '$_id', studentId: new ObjectId(studentId) },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $and: [
+                        { $eq: ['$quiz', '$$quizId'] },
+                        { $eq: ['$student', '$$studentId'] }
+                      ]
+                    }
+                  }
+                }
+              ],
+              as: 'submissions'
+            }
+          },
+          {
+            $addFields: {
+              submission: {
+                $cond: {
+                  if: { $gt: [{ $size: '$submissions' }, 0] },
+                  then: {
+                    _id: { $arrayElemAt: ['$submissions._id', 0] },
+                    isSubmitted: { $arrayElemAt: ['$submissions.isSubmitted', 0] },
+                    submittedAt: { $arrayElemAt: ['$submissions.submittedAt', 0] },
+                    grade: { $arrayElemAt: ['$submissions.grade', 0] },
+                    feedback: { $arrayElemAt: ['$submissions.feedback', 0] },
+                    gradedAt: { $arrayElemAt: ['$submissions.gradedAt', 0] },
+                    submittedDocument: { $arrayElemAt: ['$submissions.submittedDocument', 0] },
+                    submittedDocumentName: { $arrayElemAt: ['$submissions.submittedDocumentName', 0] }
+                  },
+                  else: null
+                }
+              }
+            }
+          },
+          {
+            $project: {
+              submissions: 0,
+              'assignedBy.password': 0,
+              'assignedBy.tokens': 0
+            }
+          }
+        ]),
         Quiz.countDocuments({ assignedTo: studentId })
       ]);
 
@@ -256,7 +317,7 @@ class QuizService {
 
   static async updateQuiz(quizId, teacherId, updateData) {
     try {
-      const { title, description, quizLink, dueDate, studentIds, document, documentName, documentType } = updateData;
+      const { title, description, quizLink, dueDate, totalPoints, studentIds, document, documentName, documentType } = updateData;
 
       const quiz = await Quiz.findById(quizId);
       if (!quiz) {
@@ -325,6 +386,16 @@ class QuizService {
 
       if (dueDate !== undefined) {
         quiz.dueDate = dueDate ? new Date(dueDate) : null;
+      }
+
+      if (totalPoints !== undefined) {
+        if (totalPoints < 0 || totalPoints > 1000) {
+          throw {
+            status: 400,
+            message: 'Total points must be between 0 and 1000'
+          };
+        }
+        quiz.totalPoints = totalPoints;
       }
 
       if (document !== undefined) {

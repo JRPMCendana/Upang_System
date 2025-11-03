@@ -6,7 +6,7 @@ import { Header } from "@/components/dashboard/header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { ClipboardList, Search, Plus, Clock, MoreVertical, FileText, Download, Edit, Trash, ExternalLink } from "lucide-react"
+import { ClipboardList, Search, Plus, Clock, MoreVertical, FileText, Download, Edit, Trash, ExternalLink, CheckCircle } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -41,7 +41,9 @@ export default function QuizzesPage() {
     updateQuiz,
     deleteQuiz,
     submitQuiz,
+    unsubmitQuiz,
     downloadQuizFile,
+    downloadSubmissionFile,
     fetchQuizzes,
   } = useQuizzes({ autoFetch: true })
 
@@ -95,6 +97,13 @@ export default function QuizzesPage() {
     if (result) {
       setSubmitDialogOpen(false)
       setSelectedQuiz(null)
+      fetchQuizzes()
+    }
+  }
+
+  const handleUnsubmitQuiz = async (quizId: string) => {
+    const result = await unsubmitQuiz(quizId)
+    if (result) {
       fetchQuizzes()
     }
   }
@@ -176,9 +185,11 @@ export default function QuizzesPage() {
                     : { bg: 'bg-text-secondary/10', text: 'text-text-secondary', label: 'Inactive' }
                   
                   const hasDocument = quiz.document && quiz.documentName
+                  const hasSubmittedDocument = quiz.submission?.submittedDocument && quiz.submission?.submittedDocumentName
                   const createdDate = quiz.createdAt ? format(new Date(quiz.createdAt), 'MMM dd, yyyy') : 'N/A'
                   const dueDate = quiz.dueDate ? format(new Date(quiz.dueDate), 'MMM dd, yyyy hh:mm a') : null
-                  const hasSubmitted = !!quiz.submission?.submittedAt
+                  const isSubmitted = quiz.submission?.isSubmitted || false
+                  const isGraded = quiz.submission?.grade !== null && quiz.submission?.grade !== undefined
 
                   return (
                     <Card key={quiz._id} className="p-6 hover:shadow-lg transition">
@@ -193,9 +204,15 @@ export default function QuizzesPage() {
                               <Badge className={`${statusBadge.bg} ${statusBadge.text}`}>
                                 {statusBadge.label}
                               </Badge>
-                              {hasSubmitted && (
+                              {isSubmitted && (
                                 <Badge className="bg-green-500/10 text-green-600">
+                                  <CheckCircle className="w-3 h-3 mr-1" />
                                   Submitted
+                                </Badge>
+                              )}
+                              {isGraded && (
+                                <Badge className="bg-blue-500/10 text-blue-600">
+                                  Graded
                                 </Badge>
                               )}
                             </div>
@@ -228,7 +245,7 @@ export default function QuizzesPage() {
                         )}
                       </div>
 
-                      <div className="grid md:grid-cols-4 gap-4 py-4 border-y border-border">
+                      <div className="grid md:grid-cols-5 gap-4 py-4 border-y border-border">
                         <div>
                           <p className="text-xs text-text-secondary mb-1">Created By</p>
                           <p className="font-semibold text-sm">
@@ -246,22 +263,42 @@ export default function QuizzesPage() {
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-text-secondary mb-1">Document</p>
+                          <p className="text-xs text-text-secondary mb-1">Total Points</p>
                           <p className="font-semibold text-sm">
-                            {hasDocument ? (
-                              <span className="flex items-center gap-1 text-primary">
-                                <FileText className="w-4 h-4" />
-                                Attached
-                              </span>
+                            {quiz.totalPoints || 100}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-text-secondary mb-1">
+                            {user?.role === 'student' ? 'Your Submission' : 'Document'}
+                          </p>
+                          <p className="font-semibold text-sm">
+                            {user?.role === 'student' ? (
+                              hasSubmittedDocument ? (
+                                <span className="flex items-center gap-1 text-green-600">
+                                  <FileText className="w-4 h-4" />
+                                  Screenshot submitted
+                                </span>
+                              ) : (
+                                'Not submitted'
+                              )
                             ) : (
-                              'No document'
+                              hasDocument ? (
+                                <span className="flex items-center gap-1 text-primary">
+                                  <FileText className="w-4 h-4" />
+                                  Attached
+                                </span>
+                              ) : (
+                                'No document'
+                              )
                             )}
                           </p>
                         </div>
                       </div>
 
                       <div className="flex flex-wrap items-center gap-4 text-sm pt-4">
-                        {quiz.quizLink && (
+                        {/* Only students can take quizzes */}
+                        {user?.role === "student" && quiz.quizLink && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -278,7 +315,36 @@ export default function QuizzesPage() {
                             onClick={() => downloadQuizFile(quiz.document!, quiz.documentName!)}
                           >
                             <Download className="w-4 h-4 mr-2" />
-                            Download
+                            Download Instructions
+                          </Button>
+                        )}
+                        {/* Student: View their submitted screenshot */}
+                        {user?.role === "student" && hasSubmittedDocument && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              try {
+                                const fileId = quiz.submission?.submittedDocument
+                                const fileType = quiz.submission?.submittedDocumentType || 'image/png'
+                                if (fileId) {
+                                  // Import quizService to get the blob
+                                  const { quizService } = await import('@/services/quiz-service')
+                                  const blob = await quizService.downloadSubmissionFile(fileId)
+                                  // Create blob with correct MIME type
+                                  const typedBlob = new Blob([blob], { type: fileType })
+                                  const url = window.URL.createObjectURL(typedBlob)
+                                  window.open(url, '_blank')
+                                  // Clean up after a delay
+                                  setTimeout(() => window.URL.revokeObjectURL(url), 1000)
+                                }
+                              } catch (error) {
+                                console.error('Error viewing screenshot:', error)
+                              }
+                            }}
+                          >
+                            <FileText className="w-4 h-4 mr-2" />
+                            View Screenshot
                           </Button>
                         )}
                         {user?.role === "teacher" ? (
@@ -296,14 +362,35 @@ export default function QuizzesPage() {
                             )}
                           </Button>
                         ) : (
-                          <Button 
-                            className="ml-auto" 
-                            size="sm"
-                            onClick={() => handleOpenSubmitDialog(quiz)}
-                            disabled={hasSubmitted}
-                          >
-                            {hasSubmitted ? "Already Submitted" : "Submit Quiz"}
-                          </Button>
+                          <>
+                            {/* Show grade if graded */}
+                            {isGraded && quiz.submission?.grade !== undefined && (
+                              <div className="ml-auto flex items-center gap-2 text-sm">
+                                <span className="text-text-secondary">Grade:</span>
+                                <span className="font-semibold text-accent">
+                                  {quiz.submission.grade}/{quiz.totalPoints || 100}
+                                </span>
+                              </div>
+                            )}
+                            
+                            {/* Show submit/unsubmit button only if not graded */}
+                            {!isGraded && (
+                              <Button 
+                                className={!isGraded ? "ml-auto" : ""}
+                                variant={isSubmitted ? "outline" : "default"}
+                                size="sm"
+                                onClick={() => {
+                                  if (isSubmitted) {
+                                    handleUnsubmitQuiz(quiz._id)
+                                  } else {
+                                    handleOpenSubmitDialog(quiz)
+                                  }
+                                }}
+                              >
+                                {isSubmitted ? "Unsubmit" : "Submit Quiz"}
+                              </Button>
+                            )}
+                          </>
                         )}
                       </div>
                     </Card>

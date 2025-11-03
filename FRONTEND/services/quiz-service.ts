@@ -69,6 +69,10 @@ class QuizService {
       formData.append("dueDate", data.dueDate)
     }
 
+    if (data.totalPoints !== undefined) {
+      formData.append("totalPoints", data.totalPoints.toString())
+    }
+
     if (file) {
       formData.append("file", file)
     }
@@ -105,6 +109,13 @@ class QuizService {
     if (data.status) formData.append("status", data.status)
     if (data.quizLink !== undefined) formData.append("quizLink", data.quizLink || "")
     if (data.dueDate !== undefined) formData.append("dueDate", data.dueDate || "")
+    if (data.totalPoints !== undefined) formData.append("totalPoints", data.totalPoints.toString())
+    
+    // Always include studentIds if provided (even empty array needs to be sent)
+    const studentIds = (data as any).studentIds
+    if (studentIds !== undefined) {
+      formData.append("studentIds", JSON.stringify(studentIds))
+    }
 
     if (file) {
       formData.append("file", file)
@@ -144,7 +155,7 @@ class QuizService {
     formData.append("file", file)
 
     const token = this.getAuthToken()
-    const response = await fetch(`${this.getBaseURL()}/quiz-submissions/${id}/submit`, {
+    const response = await fetch(`${this.getBaseURL()}/quizzes/${id}/submit`, {
       method: "POST",
       body: formData,
       headers: {
@@ -165,7 +176,7 @@ class QuizService {
    */
   async unsubmitQuiz(id: string): Promise<{ success: boolean; message: string }> {
     return apiClient.request<{ success: boolean; message: string }>(
-      `/quiz-submissions/${id}/unsubmit`,
+      `/quizzes/${id}/unsubmit`,
       {
         method: "POST",
       }
@@ -183,7 +194,7 @@ class QuizService {
     formData.append("file", file)
 
     const token = this.getAuthToken()
-    const response = await fetch(`${this.getBaseURL()}/quiz-submissions/${id}/replace`, {
+    const response = await fetch(`${this.getBaseURL()}/quizzes/${id}/replace`, {
       method: "PUT",
       body: formData,
       headers: {
@@ -206,7 +217,7 @@ class QuizService {
     quizId: string
   ): Promise<{ success: boolean; data: QuizSubmission | null }> {
     return apiClient.request<{ success: boolean; data: QuizSubmission | null }>(
-      `/quiz-submissions/${quizId}/my-submission`
+      `/quizzes/${quizId}/my-submission`
     )
   }
 

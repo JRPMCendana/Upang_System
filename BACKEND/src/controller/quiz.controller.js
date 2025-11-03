@@ -5,7 +5,13 @@ class QuizController {
   static async createQuiz(req, res, next) {
     try {
       const teacherId = req.user.id;
-      const { title, description, quizLink, dueDate, studentIds } = req.body;
+      const { title, description, quizLink, dueDate, totalPoints, studentIds } = req.body;
+      
+      // Parse totalPoints if it's a string (from form-data)
+      let parsedTotalPoints = totalPoints;
+      if (totalPoints && typeof totalPoints === 'string') {
+        parsedTotalPoints = parseInt(totalPoints, 10);
+      }
       
       // Parse studentIds if it's a JSON string (from form-data)
       let parsedStudentIds = studentIds;
@@ -45,6 +51,7 @@ class QuizController {
         description,
         quizLink,
         dueDate,
+        totalPoints: parsedTotalPoints,
         studentIds: parsedStudentIds,
         document,
         documentName,
@@ -118,7 +125,29 @@ class QuizController {
     try {
       const { quizId } = req.params;
       const teacherId = req.user.id;
-      const { title, description, quizLink, dueDate, studentIds } = req.body;
+      const { title, description, quizLink, dueDate, totalPoints, studentIds } = req.body;
+      
+      // Parse totalPoints if it's a string (from form-data)
+      let parsedTotalPoints = totalPoints;
+      if (totalPoints && typeof totalPoints === 'string') {
+        parsedTotalPoints = parseInt(totalPoints, 10);
+      }
+      
+      // Parse studentIds if it's a JSON string (from form-data)
+      let parsedStudentIds = studentIds;
+      if (studentIds && typeof studentIds === 'string') {
+        try {
+          parsedStudentIds = JSON.parse(studentIds);
+        } catch (e) {
+          // If not JSON, treat as single value or comma-separated
+          parsedStudentIds = studentIds.includes(',') ? studentIds.split(',') : [studentIds];
+        }
+      }
+      
+      // Ensure it's an array if provided
+      if (parsedStudentIds && !Array.isArray(parsedStudentIds)) {
+        parsedStudentIds = [parsedStudentIds];
+      }
       
       // Handle file upload to GridFS (optional)
       let document = undefined;
@@ -150,7 +179,8 @@ class QuizController {
         description,
         quizLink,
         dueDate,
-        studentIds,
+        totalPoints: parsedTotalPoints,
+        studentIds: parsedStudentIds,
         document,
         documentName,
         documentType

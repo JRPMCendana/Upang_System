@@ -28,6 +28,7 @@ export function EditQuizDialog({ open, onOpenChange, quiz, onSubmit, loading }: 
     description: "",
     quizLink: "",
     dueDate: "",
+    totalPoints: 100,
     status: "active",
   })
   const [file, setFile] = useState<File | null>(null)
@@ -59,6 +60,7 @@ export function EditQuizDialog({ open, onOpenChange, quiz, onSubmit, loading }: 
         description: quiz.description,
         quizLink: quiz.quizLink || "",
         dueDate: quiz.dueDate ? formatDateForInput(quiz.dueDate) : "",
+        totalPoints: quiz.totalPoints || 100,
         status: quiz.status,
       })
       
@@ -69,7 +71,7 @@ export function EditQuizDialog({ open, onOpenChange, quiz, onSubmit, loading }: 
       // Reset state when dialog closes
       clearSelection()
       clearSearch()
-    }
+      }
   }, [open, quiz, fetchStudents, setSelection, clearSelection, clearSearch])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -157,6 +159,21 @@ export function EditQuizDialog({ open, onOpenChange, quiz, onSubmit, loading }: 
               type="datetime-local"
               value={formData.dueDate || ""}
               onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+            />
+          </div>
+
+          {/* Total Points */}
+          <div className="space-y-2">
+            <Label htmlFor="totalPoints">Total Points</Label>
+            <Input
+              id="totalPoints"
+              type="number"
+              min="0"
+              max="1000"
+              value={formData.totalPoints || 100}
+              onChange={(e) => setFormData({ ...formData, totalPoints: parseInt(e.target.value) || 0 })}
+              placeholder="100"
+              required
             />
           </div>
 

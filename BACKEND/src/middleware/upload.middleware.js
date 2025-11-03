@@ -129,23 +129,39 @@ const getFileFromGridFS = async (fileId) => {
 
 // Helper function to delete file from GridFS
 const deleteFileFromGridFS = async (fileId) => {
-  const db = mongoose.connection.db;
-  const bucket = new GridFSBucket(db, { bucketName: 'assignments' });
-
-  return new Promise((resolve, reject) => {
-    try {
-      const objectId = new mongoose.Types.ObjectId(fileId);
+  try {
+    const db = mongoose.connection.db;
+    const bucket = new GridFSBucket(db, { bucketName: 'assignments' });
+    const objectId = new mongoose.Types.ObjectId(fileId);
+    
+    // Use promisify to convert callback to promise for better error handling
+    return await new Promise((resolve, reject) => {
       bucket.delete(objectId, (error) => {
         if (error) {
-          reject(error);
+          // Check if it's a "file not found" error
+          const errorMessage = String(error.message || error || '');
+          if (errorMessage.includes('File not found')) {
+            console.log(`File ${fileId} not found in GridFS, treating as already deleted`);
+            resolve(); // Success - file doesn't exist anyway
+          } else {
+            console.error(`Error deleting file ${fileId}:`, error);
+            reject(error);
+          }
         } else {
+          console.log(`Successfully deleted file ${fileId} from GridFS`);
           resolve();
         }
       });
-    } catch (error) {
-      reject(new Error('Invalid file ID format'));
+    });
+  } catch (error) {
+    // Catch any synchronous errors (invalid ObjectId, etc.)
+    console.error('Error in deleteFileFromGridFS:', error);
+    const errorMessage = String(error.message || error || '');
+    if (errorMessage.includes('File not found') || errorMessage.includes('Invalid')) {
+      return; // Treat as success if file not found or invalid ID
     }
-  });
+    throw error; // Re-throw other errors
+  }
 };
 
 module.exports = {

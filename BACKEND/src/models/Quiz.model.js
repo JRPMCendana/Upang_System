@@ -28,6 +28,12 @@ const quizSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  totalPoints: {
+    type: Number,
+    default: 100,
+    min: 0,
+    max: 1000
+  },
   assignedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

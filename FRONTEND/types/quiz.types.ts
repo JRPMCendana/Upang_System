@@ -7,6 +7,7 @@ export interface Quiz {
   description: string
   quizLink?: string
   dueDate?: string
+  totalPoints?: number
   assignedBy: {
     _id: string
     firstName: string
@@ -77,6 +78,7 @@ export interface CreateQuizData {
   description: string
   quizLink?: string
   dueDate?: string
+  totalPoints?: number
   studentIds: string[]
 }
 
@@ -85,6 +87,7 @@ export interface UpdateQuizData {
   description?: string
   quizLink?: string
   dueDate?: string
+  totalPoints?: number
   studentIds?: string[]
   status?: "active" | "inactive"
 }

@@ -122,45 +122,82 @@ class QuizSubmissionService {
   }
 
   static async unsubmitQuiz(quizId, studentId) {
+    console.log('=== UNSUBMIT QUIZ START ===');
+    console.log('Quiz ID:', quizId);
+    console.log('Student ID:', studentId);
+    
     try {
+      console.log('Step 1: Finding submission...');
       const submission = await QuizSubmission.findOne({
         quiz: quizId,
         student: studentId
       });
 
       if (!submission) {
+        console.error('Step 1 FAILED: Submission not found');
         throw {
           status: 404,
           message: 'Submission not found'
         };
       }
+      console.log('Step 1 SUCCESS: Submission found:', submission._id);
 
       if (!submission.isSubmitted) {
+        console.error('Step 1 FAILED: Quiz is not submitted');
         throw {
           status: 400,
           message: 'Quiz is not submitted'
         };
       }
 
-      // Delete file from GridFS
-      if (submission.submittedDocument) {
-        try {
-          await deleteFileFromGridFS(submission.submittedDocument);
-        } catch (error) {
-          console.error('Error deleting submission file:', error);
-        }
+      // Store the submission ID before any operations
+      const submissionId = submission._id;
+      const fileId = submission.submittedDocument;
+      console.log('Submission ID:', submissionId);
+      console.log('File ID:', fileId);
+
+      // Delete file from GridFS (non-blocking)
+      if (fileId) {
+        console.log('Step 2: Starting file deletion (non-blocking)...');
+        console.log(`Attempting to delete file: ${fileId}`);
+        deleteFileFromGridFS(fileId)
+          .then(() => {
+            console.log('File deleted successfully (or already deleted)');
+          })
+          .catch((error) => {
+            console.error('Error deleting submission file (non-critical):', error.message);
+          });
+        console.log('Step 2: File deletion initiated');
+      } else {
+        console.log('Step 2: No file to delete');
       }
 
-      // Reset submission
-      submission.submittedDocument = null;
-      submission.submittedDocumentName = null;
-      submission.submittedDocumentType = null;
-      submission.isSubmitted = false;
-      submission.submittedAt = null;
-      await submission.save();
+      // Delete the entire submission document immediately (don't wait for file deletion)
+      console.log('Step 3: Deleting submission document from database...');
+      console.log(`Deleting submission document ${submissionId} for quiz ${quizId}, student ${studentId}`);
+      
+      const deleteResult = await QuizSubmission.findByIdAndDelete(submissionId);
+      
+      if (!deleteResult) {
+        console.error('Step 3 FAILED: Submission document was not found when attempting to delete');
+        throw {
+          status: 404,
+          message: 'Submission not found or already deleted'
+        };
+      }
+      
+      console.log('Step 3 SUCCESS: Submission document deleted successfully:', submissionId);
+      console.log('Deleted document:', deleteResult);
+      console.log('=== UNSUBMIT QUIZ COMPLETE ===');
 
-      return submission;
+      return {
+        _id: submissionId,
+        message: 'Quiz unsubmitted successfully'
+      };
     } catch (error) {
+      console.error('=== UNSUBMIT QUIZ ERROR ===');
+      console.error('Error details:', error);
+      
       if (error.status) {
         throw error;
       }

@@ -73,6 +73,15 @@ process.on('unhandledRejection', (err) => {
     console.error(err.stack);
   }
   
+  // Check if it's a GridFS file not found error - don't crash for these
+  const errorMessage = String(err.message || err || '');
+  const isFileNotFoundError = errorMessage.includes('File not found') && errorMessage.includes('GridFS');
+  
+  if (isFileNotFoundError) {
+    console.log('Note: This is a non-critical GridFS file deletion error. Continuing...');
+    return; // Don't crash the server
+  }
+  
   // Don't exit immediately - give time for cleanup
   setTimeout(() => {
     console.log('\nShutting down due to unhandled rejection...');
