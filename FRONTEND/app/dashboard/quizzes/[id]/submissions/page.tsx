@@ -254,7 +254,7 @@ export default function QuizSubmissionsPage() {
                           {getSubmissionStatusBadge(submission)}
                           {submission.grade !== null && submission.grade !== undefined && (
                             <Badge className="bg-accent/10 text-accent border-accent/20">
-                              {submission.grade}/100
+                              {submission.grade}/{quiz?.totalPoints || 100}
                             </Badge>
                           )}
                         </div>
@@ -319,12 +319,12 @@ export default function QuizSubmissionsPage() {
                         <div className="border-t border-border pt-4 space-y-4">
                           <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                              <Label htmlFor={`grade-${submission._id}`}>Grade (0-100)</Label>
+                              <Label htmlFor={`grade-${submission._id}`}>Grade (0-{quiz?.totalPoints || 100})</Label>
                               <Input
                                 id={`grade-${submission._id}`}
                                 type="number"
                                 min="0"
-                                max="100"
+                                max={quiz?.totalPoints || 100}
                                 value={gradeFormData.grade}
                                 onChange={(e) => setGradeFormData(prev => ({ ...prev, grade: parseInt(e.target.value) || 0 }))}
                               />

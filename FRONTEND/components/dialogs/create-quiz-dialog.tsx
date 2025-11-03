@@ -26,6 +26,7 @@ export function CreateQuizDialog({ open, onOpenChange, onSubmit, loading }: Crea
     description: "",
     quizLink: "",
     dueDate: "",
+    totalPoints: 100,
     studentIds: [],
   })
   const [file, setFile] = useState<File | null>(null)
@@ -85,6 +86,7 @@ export function CreateQuizDialog({ open, onOpenChange, onSubmit, loading }: Crea
       description: "",
       quizLink: "",
       dueDate: "",
+      totalPoints: 100,
       studentIds: [],
     })
     setFile(null)
@@ -147,6 +149,21 @@ export function CreateQuizDialog({ open, onOpenChange, onSubmit, loading }: Crea
               type="datetime-local"
               value={formData.dueDate}
               onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+            />
+          </div>
+
+          {/* Total Points */}
+          <div className="space-y-2">
+            <Label htmlFor="totalPoints">Total Points</Label>
+            <Input
+              id="totalPoints"
+              type="number"
+              min="0"
+              max="1000"
+              value={formData.totalPoints}
+              onChange={(e) => setFormData({ ...formData, totalPoints: parseInt(e.target.value) || 0 })}
+              placeholder="100"
+              required
             />
           </div>
 
