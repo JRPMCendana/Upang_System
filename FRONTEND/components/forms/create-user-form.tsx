@@ -146,7 +146,19 @@ export function CreateUserForm({ open, onOpenChange, onSuccess }: CreateUserForm
   }
 
   const handleChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
+    // Enforce character limits
+    const limits: Record<string, number> = {
+      email: 50,
+      username: 50,
+      password: 50,
+      firstName: 50,
+      lastName: 50,
+    }
+    
+    const limit = limits[field]
+    const limitedValue = limit && value.length > limit ? value.slice(0, limit) : value
+    
+    setFormData((prev) => ({ ...prev, [field]: limitedValue }))
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }))
@@ -203,6 +215,7 @@ export function CreateUserForm({ open, onOpenChange, onSuccess }: CreateUserForm
                   onChange={(e) => handleChange("email", e.target.value)}
                   className={`h-9 ${errors.email ? "border-danger" : ""}`}
                   disabled={hookLoading}
+                  maxLength={100}
                 />
                 {errors.email && (
                   <p className="text-xs text-danger">{errors.email}</p>
@@ -224,6 +237,7 @@ export function CreateUserForm({ open, onOpenChange, onSuccess }: CreateUserForm
                   onChange={(e) => handleChange("username", e.target.value)}
                   className={`h-9 ${errors.username ? "border-danger" : ""}`}
                   disabled={hookLoading}
+                  maxLength={50}
                 />
                 {errors.username && (
                   <p className="text-xs text-danger">{errors.username}</p>
@@ -243,6 +257,7 @@ export function CreateUserForm({ open, onOpenChange, onSuccess }: CreateUserForm
                     onChange={(e) => handleChange("password", e.target.value)}
                     className={`h-9 pr-10 ${errors.password ? "border-danger" : ""}`}
                     disabled={hookLoading}
+                    maxLength={100}
                   />
                   <button
                     type="button"
@@ -275,6 +290,7 @@ export function CreateUserForm({ open, onOpenChange, onSuccess }: CreateUserForm
                   onChange={(e) => handleChange("firstName", e.target.value)}
                   className={`h-9 ${errors.firstName ? "border-danger" : ""}`}
                   disabled={hookLoading}
+                  maxLength={50}
                 />
                 {errors.firstName && (
                   <p className="text-xs text-danger">{errors.firstName}</p>
@@ -291,6 +307,7 @@ export function CreateUserForm({ open, onOpenChange, onSuccess }: CreateUserForm
                   onChange={(e) => handleChange("lastName", e.target.value)}
                   className={`h-9 ${errors.lastName ? "border-danger" : ""}`}
                   disabled={hookLoading}
+                  maxLength={50}
                 />
                 {errors.lastName && (
                   <p className="text-xs text-danger">{errors.lastName}</p>

@@ -90,13 +90,6 @@ export default function AdminDashboard() {
                 <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
                 <p className="text-text-secondary">System overview and management</p>
               </div>
-              <Button
-                className="bg-primary hover:bg-primary-dark gap-2"
-                onClick={() => router.push("/dashboard/users")}
-              >
-                <Users className="w-5 h-5" />
-                Manage Users
-              </Button>
             </div>
 
             {/* Stats Cards */}
@@ -144,13 +137,11 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold">Recent Users</h2>
                 <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
+                  className="bg-primary hover:bg-primary-dark gap-2"
                   onClick={() => router.push("/dashboard/users")}
                 >
-                  View All
-                  <ArrowRight className="w-4 h-4" />
+                  <Users className="w-5 h-5" />
+                  Manage Users
                 </Button>
               </div>
 
