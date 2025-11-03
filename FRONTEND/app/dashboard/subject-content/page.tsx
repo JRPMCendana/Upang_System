@@ -5,15 +5,34 @@ import { Sidebar } from "@/components/dashboard/sidebar"
 import { Header } from "@/components/dashboard/header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { FileText, MoreVertical, Search, Eye, Pencil, Trash2 } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { FileText, Search, Loader2, Calendar, Users } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+import { useTeacherActivities } from "@/hooks/use-teacher-activities"
+import { formatRelativeTime } from "@/utils/date.utils"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 export default function SubjectContentPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
+  const [typeFilter, setTypeFilter] = useState("all")
+
+  const {
+    combinedActivities,
+    loading,
+    assignmentsTotal,
+    quizzesTotal,
+    fetchAll,
+  } = useTeacherActivities()
 
   useEffect(() => {
     if (authLoading) return
@@ -27,11 +46,17 @@ export default function SubjectContentPage() {
     }
   }, [isAuthenticated, router, user, authLoading])
 
-  if (authLoading) {
+  useEffect(() => {
+    if (isAuthenticated && user?.role === "admin") {
+      fetchAll()
+    }
+  }, [isAuthenticated, user, fetchAll])
+
+  if (authLoading || loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-bg-secondary">
         <div className="text-center">
-          <FileText className="w-8 h-8 animate-pulse mx-auto mb-4 text-primary" />
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
           <p className="text-text-secondary">Loading...</p>
         </div>
       </div>
@@ -40,21 +65,26 @@ export default function SubjectContentPage() {
 
   if (!isAuthenticated || (user && user.role !== "admin")) return null
 
-  const mockFiles = [
-    { id: 1, course: "Introduction to React", fileName: "week-1-overview.pdf", type: "PDF", size: "2.3 MB", uploadedBy: "Prof. Smith", uploadedAt: "2025-10-22" },
-    { id: 2, course: "Web Design Basics", fileName: "grid-layout-examples.zip", type: "ZIP", size: "5.1 MB", uploadedBy: "Prof. Johnson", uploadedAt: "2025-10-18" },
-    { id: 3, course: "JavaScript Fundamentals", fileName: "async-await-guide.docx", type: "DOCX", size: "780 KB", uploadedBy: "Prof. Williams", uploadedAt: "2025-10-15" },
-    { id: 4, course: "Advanced CSS", fileName: "animations-demo.mp4", type: "MP4", size: "18.4 MB", uploadedBy: "Prof. Brown", uploadedAt: "2025-10-05" },
-  ]
-
-  const files = mockFiles.filter((f) => {
-    const q = searchQuery.toLowerCase()
-    return (
-      f.fileName.toLowerCase().includes(q) ||
-      f.course.toLowerCase().includes(q) ||
-      f.uploadedBy.toLowerCase().includes(q)
-    )
+  // Filter activities by type and search
+  const filteredActivities = combinedActivities.filter((activity) => {
+    const matchesType = typeFilter === "all" || activity.type === typeFilter
+    const matchesSearch =
+      !searchQuery ||
+      activity.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      activity.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      `${activity.assignedBy.firstName} ${activity.assignedBy.lastName}`
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase())
+    return matchesType && matchesSearch
   })
+
+  const getActivityIcon = (type: string) => {
+    return type === "quiz" ? "🧠" : "📄"
+  }
+
+  const getActivityColor = (type: string) => {
+    return type === "quiz" ? "bg-purple-500/10 text-purple-500" : "bg-blue-500/10 text-blue-500"
+  }
 
   return (
     <div className="flex h-screen bg-bg-secondary">
@@ -67,69 +97,128 @@ export default function SubjectContentPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold mb-2">Subject Lessons</h1>
-                <p className="text-text-secondary">Monitor lesson files uploaded by teachers</p>
+                <h1 className="text-3xl font-bold mb-2">Teacher's Assignments and Quizzes</h1>
+                <p className="text-text-secondary">
+                  Monitor all assignments and quizzes created by teachers • {filteredActivities.length} total
+                </p>
               </div>
             </div>
 
-            {/* Search */}
+            {/* Summary Stats */}
+            <div className="grid grid-cols-3 gap-4">
+              <Card className="p-4">
+                <p className="text-sm text-text-secondary mb-1">Total Activities</p>
+                <p className="text-2xl font-bold">{assignmentsTotal + quizzesTotal}</p>
+              </Card>
+              <Card className="p-4">
+                <p className="text-sm text-text-secondary mb-1">Assignments</p>
+                <p className="text-2xl font-bold">{assignmentsTotal}</p>
+              </Card>
+              <Card className="p-4">
+                <p className="text-sm text-text-secondary mb-1">Quizzes</p>
+                <p className="text-2xl font-bold">{quizzesTotal}</p>
+              </Card>
+            </div>
+
+            {/* Filters */}
             <Card className="p-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 w-5 h-5 text-text-secondary" />
-                <Input
-                  placeholder="Search by lessons, file name, or teacher..."
-                  className="pl-10"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 w-5 h-5 text-text-secondary" />
+                  <Input
+                    placeholder="Search by title, description, or teacher..."
+                    className="pl-10"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="assignment">Assignments Only</SelectItem>
+                    <SelectItem value="quiz">Quizzes Only</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </Card>
 
-            {/* Files list */}
-            <Card className="overflow-hidden">
-              <div className="min-w-full overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-bg-tertiary text-text-secondary">
-                    <tr>
-                      <th className="text-left px-6 py-3 font-medium">Lessons</th>
-                      <th className="text-left px-6 py-3 font-medium">File</th>
-                      <th className="text-left px-6 py-3 font-medium">Type</th>
-                      <th className="text-left px-6 py-3 font-medium">Size</th>
-                      <th className="text-left px-6 py-3 font-medium">Uploaded By</th>
-                      <th className="text-left px-6 py-3 font-medium">Uploaded At</th>
-                      <th className="px-6 py-3" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {files.map((f) => (
-                      <tr key={f.id} className="border-t border-border hover:bg-bg-secondary/70">
-                        <td className="px-6 py-3 font-medium">{f.course}</td>
-                        <td className="px-6 py-3 flex items-center gap-2">
-                          <FileText className="w-4 h-4 text-primary" /> {f.fileName}
-                        </td>
-                        <td className="px-6 py-3">{f.type}</td>
-                        <td className="px-6 py-3">{f.size}</td>
-                        <td className="px-6 py-3">{f.uploadedBy}</td>
-                        <td className="px-6 py-3">{f.uploadedAt}</td>
-                        <td className="px-6 py-3 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button variant="outline" size="sm" className="gap-1">
-                              <Eye className="w-4 h-4" /> View
-                            </Button>
-                            <Button variant="outline" size="sm" className="gap-1">
-                              <Pencil className="w-4 h-4" /> Edit
-                            </Button>
-                            <Button variant="ghost" size="icon" className="text-danger">
-                              <Trash2 className="w-5 h-5" />
-                            </Button>
+            {/* Activities list */}
+            <div className="space-y-4">
+              {loading && (
+                <div className="text-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+                  <p className="text-text-secondary">Loading activities...</p>
+                </div>
+              )}
+
+              {!loading && filteredActivities.length === 0 && (
+                <Card className="p-12 text-center">
+                  <FileText className="w-12 h-12 mx-auto mb-4 text-text-secondary" />
+                  <h3 className="text-lg font-semibold mb-2">No activities found</h3>
+                  <p className="text-text-secondary">
+                    {searchQuery || typeFilter !== "all"
+                      ? "Try adjusting your filters"
+                      : "No assignments or quizzes have been created yet"}
+                  </p>
+                </Card>
+              )}
+
+              {!loading &&
+                filteredActivities.map((activity) => (
+                  <Card key={activity._id} className="p-6 hover:shadow-lg transition">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-4 flex-1">
+                        <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center shrink-0 text-2xl">
+                          {getActivityIcon(activity.type)}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="text-lg font-semibold">{activity.title}</h3>
+                            <Badge className={getActivityColor(activity.type)}>
+                              {activity.type === "quiz" ? "Quiz" : "Assignment"}
+                            </Badge>
                           </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
+                          {activity.description && (
+                            <p className="text-sm text-text-secondary mb-2 line-clamp-2">
+                              {activity.description}
+                            </p>
+                          )}
+                          <div className="flex flex-wrap items-center gap-4 text-sm text-text-secondary">
+                            <span className="font-medium">
+                              👨‍🏫 {activity.assignedBy.firstName} {activity.assignedBy.lastName}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-4 h-4" />
+                              Created {formatRelativeTime(activity.createdAt)}
+                            </span>
+                            {activity.dueDate && (
+                              <span className="flex items-center gap-1">
+                                📅 Due: {new Date(activity.dueDate).toLocaleDateString()}
+                              </span>
+                            )}
+                            <span className="flex items-center gap-1">
+                              <Users className="w-4 h-4" />
+                              {activity.assignedTo?.length || 0} students
+                            </span>
+                            {activity.type === "quiz" && activity.totalPoints && (
+                              <Badge variant="outline">{activity.totalPoints} points</Badge>
+                            )}
+                            {activity.type === "assignment" && activity.maxGrade && (
+                              <Badge variant="outline">Max: {activity.maxGrade} points</Badge>
+                            )}
+                            {activity.documentName && (
+                              <span className="text-xs">📎 {activity.documentName}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+            </div>
           </div>
         </main>
       </div>

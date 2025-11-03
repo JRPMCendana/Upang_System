@@ -65,7 +65,7 @@ const navItems: NavItem[] = [
     roles: ["admin"],
   },
   {
-    label: "Subject Lessons",
+    label: "Teacher's Activities",
     href: "/dashboard/subject-content",
     icon: <FileText className="w-5 h-5" />,
     roles: ["admin"],
