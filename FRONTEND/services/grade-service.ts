@@ -7,7 +7,6 @@ export interface TeacherGradeStats {
   classAverage: number
   passRate: number
   passingStudents: string
-  avgSubmissions: number
   gradingStatus: string
   pendingGrading: number
   gradeDistribution: Array<{
@@ -18,7 +17,7 @@ export interface TeacherGradeStats {
   }>
   performanceByTask: Array<{
     name: string
-    type: 'assignment' | 'quiz'
+    type: 'assignment' | 'quiz' | 'exam'
     average: number
     passed: number
     total: number
@@ -26,6 +25,7 @@ export interface TeacherGradeStats {
   totalStudents: number
   totalAssignments: number
   totalQuizzes: number
+  totalExams: number
   totalGraded: number
 }
 
@@ -44,7 +44,7 @@ export interface StudentGradeStats {
     id: string
     name: string
     grade: number | null
-    type: 'assignment' | 'quiz'
+    type: 'assignment' | 'quiz' | 'exam'
     status: string
     date: string | Date
   }>
@@ -52,7 +52,7 @@ export interface StudentGradeStats {
     id: string
     name: string
     grade: number | null
-    type: 'assignment' | 'quiz'
+    type: 'assignment' | 'quiz' | 'exam'
     status: string
     date: string | Date | null
   }>
@@ -103,13 +103,14 @@ export interface StudentGradeDetails {
   byType: {
     assignments: Array<GradeItem>
     quizzes: Array<GradeItem>
+    exams: Array<GradeItem>
   }
   allGrades: Array<GradeItem>
 }
 
 export interface GradeItem {
   id: string
-  type: 'assignment' | 'quiz'
+  type: 'assignment' | 'quiz' | 'exam'
   source: string // Assignment/Quiz title
   sourceId: string
   rawGrade: number | null

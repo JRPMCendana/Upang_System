@@ -2,8 +2,11 @@ const Assignment = require('../models/Assignment.model');
 const AssignmentSubmission = require('../models/AssignmentSubmission.model');
 const Quiz = require('../models/Quiz.model');
 const QuizSubmission = require('../models/QuizSubmission.model');
+const Exam = require('../models/Exam.model');
+const ExamSubmission = require('../models/ExamSubmission.model');
 const User = require('../models/User.model');
 const DbUtils = require('../utils/db.utils');
+const GradeService = require('./grade.service');
 
 class DashboardService {
   /**
@@ -165,28 +168,36 @@ class DashboardService {
 
       const studentIds = students.map(s => s._id);
 
-      // Get all assignments created by this teacher
-      const assignments = await Assignment.find({
-        assignedBy: teacherId
+      // Get all assignments/quizzes/exams either created by this teacher or assigned to their students
+      const createdByOrAssignedTo = (Model) => ({
+        $or: [
+          { assignedBy: teacherId },
+          { assignedTo: { $in: studentIds } }
+        ]
       });
+
+      const [assignments, quizzes, exams] = await Promise.all([
+        Assignment.find(createdByOrAssignedTo(Assignment)),
+        Quiz.find(createdByOrAssignedTo(Quiz)),
+        Exam.find(createdByOrAssignedTo(Exam))
+      ]);
 
       const assignmentIds = assignments.map(a => a._id);
 
-      // Get all quizzes created by this teacher
-      const quizzes = await Quiz.find({
-        assignedBy: teacherId
-      });
-
       const quizIds = quizzes.map(q => q._id);
+      const examIds = exams.map(e => e._id);
 
       // Get all submissions
-      const [assignmentSubmissions, quizSubmissions] = await Promise.all([
+      const [assignmentSubmissions, quizSubmissions, examSubmissions] = await Promise.all([
         AssignmentSubmission.find({
           assignment: { $in: assignmentIds }
         }).populate('assignment', 'title dueDate'),
         QuizSubmission.find({
           quiz: { $in: quizIds }
-        }).populate('quiz', 'title')
+        }).populate('quiz', 'title'),
+        ExamSubmission.find({
+          exam: { $in: examIds }
+        }).populate('exam', 'title totalPoints')
       ]);
 
       // Calculate pending submissions (submitted but not graded)
@@ -198,11 +209,16 @@ class DashboardService {
         sub => sub.isSubmitted && (sub.grade === null || sub.grade === undefined)
       ).length;
 
-      const totalPendingGrading = pendingAssignmentGrading + pendingQuizGrading;
+      const pendingExamGrading = examSubmissions.filter(
+        sub => sub.isSubmitted && (sub.grade === null || sub.grade === undefined)
+      ).length;
+
+      const totalPendingGrading = pendingAssignmentGrading + pendingQuizGrading + pendingExamGrading;
 
       // Calculate total submissions
       const totalSubmissions = assignmentSubmissions.filter(s => s.isSubmitted).length +
-                              quizSubmissions.filter(s => s.isSubmitted).length;
+                              quizSubmissions.filter(s => s.isSubmitted).length +
+                              examSubmissions.filter(s => s.isSubmitted).length;
 
       // Calculate graded submissions
       const gradedAssignments = assignmentSubmissions.filter(
@@ -213,7 +229,11 @@ class DashboardService {
         sub => sub.grade !== null && sub.grade !== undefined
       ).length;
 
-      const totalGraded = gradedAssignments + gradedQuizzes;
+      const gradedExams = examSubmissions.filter(
+        sub => sub.grade !== null && sub.grade !== undefined
+      ).length;
+
+      const totalGraded = gradedAssignments + gradedQuizzes + gradedExams;
 
       // Get recent submissions (last 5 that need grading)
       const recentPendingSubmissions = assignmentSubmissions
@@ -235,24 +255,55 @@ class DashboardService {
         })
       );
 
-      // Calculate average class grade
-      const allGrades = [
-        ...assignmentSubmissions.filter(s => s.grade !== null).map(s => s.grade),
-        ...quizSubmissions.filter(s => s.grade !== null).map(s => s.grade)
-      ];
+      // Calculate average class grade using weighted formula (Exam 50%, Quiz 35%, Assignment 15%)
+      const assignmentPercents = assignmentSubmissions
+        .filter(s => s.grade !== null && s.grade !== undefined && s.isSubmitted)
+        .map(s => {
+          const a = assignments.find(x => x._id.toString() === s.assignment.toString());
+          const max = (a && a.totalPoints) ? a.totalPoints : 100;
+          return (s.grade / max) * 100;
+        });
 
-      const averageClassGrade = allGrades.length > 0
-        ? Math.round(allGrades.reduce((sum, grade) => sum + grade, 0) / allGrades.length)
-        : 0;
+      const quizPercents = quizSubmissions
+        .filter(s => s.grade !== null && s.grade !== undefined && s.isSubmitted)
+        .map(s => {
+          const q = quizzes.find(x => x._id.toString() === s.quiz.toString());
+          const max = (q && q.totalPoints) ? q.totalPoints : 100;
+          return (s.grade / max) * 100;
+        });
+
+      const examPercents = examSubmissions
+        .filter(s => s.grade !== null && s.grade !== undefined && s.isSubmitted)
+        .map(s => {
+          const e = exams.find(x => x._id.toString() === s.exam.toString());
+          const max = (e && e.totalPoints) ? e.totalPoints : 100;
+          return (s.grade / max) * 100;
+        });
+
+      const avg = (arr) => arr.length > 0 ? (arr.reduce((s, v) => s + v, 0) / arr.length) : 0;
+      const assignmentAvg = (assignments.length === 0 || assignmentPercents.length === 0) ? 100 : avg(assignmentPercents);
+      const quizAvg = (quizzes.length === 0 || quizPercents.length === 0) ? 100 : avg(quizPercents);
+      const examAvg = (exams.length === 0 || examPercents.length === 0) ? 100 : avg(examPercents);
+      // For consistency with Grade Management, reuse the same computation from GradeService
+      // (This also guards against any future divergence.)
+      let averageClassGrade = Math.round((0.15 * assignmentAvg) + (0.35 * quizAvg) + (0.50 * examAvg));
+      try {
+        const gradeStats = await GradeService.getTeacherGradeStats(teacherId);
+        if (gradeStats && typeof gradeStats.classAverage === 'number') {
+          averageClassGrade = gradeStats.classAverage;
+        }
+      } catch {}
 
       return {
         totalStudents: students.length,
         totalAssignments: assignments.length,
         totalQuizzes: quizzes.length,
+        totalExams: exams.length,
         totalTasks: assignments.length + quizzes.length,
         pendingGrading: totalPendingGrading,
         pendingAssignmentGrading,
         pendingQuizGrading,
+        pendingExamGrading,
         totalSubmissions,
         gradedSubmissions: totalGraded,
         averageClassGrade,

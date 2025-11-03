@@ -27,6 +27,7 @@ import { formatDate } from "@/utils/date.utils"
 import { useToast } from "@/hooks/use-toast"
 import type { ExamSubmission } from "@/types/exam.types"
 import { FileViewerDialog } from "@/components/dialogs/file-viewer-dialog"
+import { EditExamDialog } from "@/components/dialogs/edit-exam-dialog"
 
 export default function ExamSubmissionsPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
@@ -41,6 +42,7 @@ export default function ExamSubmissionsPage() {
   const [initialLoading, setInitialLoading] = useState(true)
   const [gradingSubmissionId, setGradingSubmissionId] = useState<string | null>(null)
   const [gradeFormData, setGradeFormData] = useState({ grade: 0, feedback: "" })
+  const [editOpen, setEditOpen] = useState(false)
 
   // File viewer state
   const [viewerOpen, setViewerOpen] = useState(false)
@@ -156,7 +158,8 @@ export default function ExamSubmissionsPage() {
   }, [examId, isAuthenticated, user, fetchSubmissions])
 
   const getSubmissionStatusBadge = (submission: ExamSubmission) => {
-    if (submission.grade !== null && submission.grade !== undefined) {
+    const status = submission.status || (submission.grade != null ? 'graded' : submission.isSubmitted ? 'submitted' : 'pending')
+    if (status === 'graded') {
       return (
         <Badge className="bg-green-500/10 text-green-600 border-green-500/20">
           <CheckCircle className="w-3 h-3 mr-1" />
@@ -164,10 +167,26 @@ export default function ExamSubmissionsPage() {
         </Badge>
       )
     }
+    if (status === 'submitted') {
+      return (
+        <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">
+          <Clock className="w-3 h-3 mr-1" />
+          Submitted
+        </Badge>
+      )
+    }
+    if (status === 'due') {
+      return (
+        <Badge className="bg-red-500/10 text-red-600 border-red-500/20">
+          <Clock className="w-3 h-3 mr-1" />
+          Late
+        </Badge>
+      )
+    }
     return (
-      <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">
+      <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">
         <Clock className="w-3 h-3 mr-1" />
-        Submitted
+        Pending
       </Badge>
     )
   }
@@ -201,6 +220,16 @@ export default function ExamSubmissionsPage() {
               <div className="flex-1">
                 <h1 className="text-3xl font-bold mb-2">{exam?.title || "Exam"} - Submissions</h1>
                 <p className="text-text-secondary">Review and grade student exam submissions ({submissions.length} total)</p>
+              </div>
+              <div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditOpen(true)}
+                  disabled={!exam}
+                >
+                  Edit Exam
+                </Button>
               </div>
             </div>
 
@@ -365,6 +394,23 @@ export default function ExamSubmissionsPage() {
               handleDownloadSubmission(viewingFile.fileId, viewingFile.fileName)
             }
           }}
+        />
+      )}
+
+      {/* Edit Exam */}
+      {exam && (
+        <EditExamDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          examId={exam._id}
+          initial={{
+            title: exam.title,
+            description: exam.description,
+            dueDate: exam.dueDate,
+            totalPoints: exam.totalPoints,
+            documentName: exam.documentName || undefined,
+          }}
+          onUpdated={async () => { await fetchSubmissions() }}
         />
       )}
     </div>
