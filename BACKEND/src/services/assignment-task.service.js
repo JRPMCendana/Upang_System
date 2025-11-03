@@ -277,7 +277,7 @@ class AssignmentTaskService {
         };
       }
 
-      // Verify access: teacher can only see their own assignments, student can only see assignments assigned to them
+      // Verify access: teacher can only see their own assignments, student can only see assignments assigned to them, admin can see all
       if (userRole === 'teacher') {
         if (assignment.assignedBy._id.toString() !== userId.toString()) {
           throw {
@@ -295,6 +295,8 @@ class AssignmentTaskService {
             message: 'Access denied. This assignment is not assigned to you.'
           };
         }
+      } else if (userRole === 'administrator' || userRole === 'admin') {
+        // Admin can access all assignments
       }
 
       return assignment;

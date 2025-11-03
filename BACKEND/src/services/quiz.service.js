@@ -281,7 +281,7 @@ class QuizService {
         };
       }
 
-      // Verify access: teacher can only see their own quizzes, student can only see quizzes assigned to them
+      // Verify access: teacher can only see their own quizzes, student can only see quizzes assigned to them, admin can see all
       if (userRole === 'teacher') {
         if (quiz.assignedBy._id.toString() !== userId.toString()) {
           throw {
@@ -299,6 +299,8 @@ class QuizService {
             message: 'Access denied. This quiz is not assigned to you.'
           };
         }
+      } else if (userRole === 'administrator' || userRole === 'admin') {
+        // Admin can access all quizzes
       }
 
       return quiz;

@@ -72,10 +72,13 @@ class AssignmentTaskController {
         result = await AssignmentTaskService.getAssignmentsByTeacher(userId, page, limit);
       } else if (role === 'student') {
         result = await AssignmentTaskService.getAssignmentsByStudent(userId, page, limit);
+      } else if (role === 'administrator' || role === 'admin') {
+        // Admins can see all assignments
+        result = await AssignmentTaskService.getAllAssignments(page, limit);
       } else {
         return res.status(403).json({
           error: 'Forbidden',
-          message: 'Only teachers and students can view assignments'
+          message: 'Unauthorized role'
         });
       }
 
