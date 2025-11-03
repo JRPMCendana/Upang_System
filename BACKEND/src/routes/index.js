@@ -13,6 +13,7 @@ const quizRoutes = require('./quiz.routes');
 const dashboardRoutes = require('./dashboard.routes');
 const gradeRoutes = require('./grade.routes');
 const examRoutes = require('./exam.routes');
+const analyticsRoutes = require('./analytics.routes');
 
 // Routes that don't require database (always available)
 router.use('/', homeRoutes);
@@ -30,6 +31,7 @@ router.use('/api/quizzes', checkDatabaseConnection, quizRoutes);
 router.use('/api/exams', checkDatabaseConnection, examRoutes);
 router.use('/api/dashboard', checkDatabaseConnection, dashboardRoutes);
 router.use('/api/grades', checkDatabaseConnection, gradeRoutes);
+router.use('/api/analytics', checkDatabaseConnection, analyticsRoutes);
 
 module.exports = router;
 
