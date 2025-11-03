@@ -39,6 +39,8 @@ export default function UsersPage() {
   const [statusFilter, setStatusFilter] = useState<"active" | "deactivated" | "deleted" | "all">("active")
   const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false)
   const [userToDelete, setUserToDelete] = useState<User | null>(null)
+  const [userToDeactivate, setUserToDeactivate] = useState<User | null>(null)
+  const [userToActivate, setUserToActivate] = useState<User | null>(null)
   const [userToEdit, setUserToEdit] = useState<User | null>(null)
   const [studentToView, setStudentToView] = useState<User | null>(null)
 
@@ -89,8 +91,46 @@ export default function UsersPage() {
   const confirmDelete = async () => {
     if (!userToDelete) return
     
-    await changeUserStatus(userToDelete._id, "deleted")
+    const success = await changeUserStatus(userToDelete._id, "deleted")
+    if (success) {
+      // Refresh with current filters
+      await fetchUsers(currentPage, {
+        role: roleFilter === "all" ? undefined : roleFilter,
+        status: statusFilter === "all" ? undefined : statusFilter,
+        limit: 10,
+      })
+    }
     setUserToDelete(null)
+  }
+
+  const confirmDeactivate = async () => {
+    if (!userToDeactivate) return
+    
+    const success = await changeUserStatus(userToDeactivate._id, "deactivated")
+    if (success) {
+      // Refresh with current filters
+      await fetchUsers(currentPage, {
+        role: roleFilter === "all" ? undefined : roleFilter,
+        status: statusFilter === "all" ? undefined : statusFilter,
+        limit: 10,
+      })
+    }
+    setUserToDeactivate(null)
+  }
+
+  const confirmActivate = async () => {
+    if (!userToActivate) return
+    
+    const success = await changeUserStatus(userToActivate._id, "active")
+    if (success) {
+      // Refresh with current filters
+      await fetchUsers(currentPage, {
+        role: roleFilter === "all" ? undefined : roleFilter,
+        status: statusFilter === "all" ? undefined : statusFilter,
+        limit: 10,
+      })
+    }
+    setUserToActivate(null)
   }
 
   if (!isAuthenticated || (user && user.role !== "admin" && user.role !== "teacher")) return null
@@ -266,7 +306,7 @@ export default function UsersPage() {
                           </td>
                           <td className="px-6 py-3 align-middle">
                             <div className="flex items-center gap-2">
-                              <Mail className="w-4 h-4 flex-shrink-0" />
+                              <Mail className="w-4 h-4 shrink-0" />
                               <span className="text-text-secondary">{u.email}</span>
                             </div>
                           </td>
@@ -314,7 +354,7 @@ export default function UsersPage() {
                                       variant="outline"
                                       size="sm"
                                       className="gap-1"
-                                      onClick={() => handleStatusChange(u._id, "deactivated")}
+                                      onClick={() => setUserToDeactivate(u)}
                                     >
                                       <UserX className="w-4 h-4" /> Deactivate
                                     </Button>
@@ -323,7 +363,7 @@ export default function UsersPage() {
                                       variant="outline"
                                       size="sm"
                                       className="gap-1"
-                                      onClick={() => handleStatusChange(u._id, "active")}
+                                      onClick={() => setUserToActivate(u)}
                                     >
                                       <Shield className="w-4 h-4" /> Activate
                                     </Button>
@@ -436,6 +476,66 @@ export default function UsersPage() {
         open={!!studentToView}
         onOpenChange={(open) => !open && setStudentToView(null)}
       />
+
+      {/* Deactivate Confirmation Dialog */}
+      <AlertDialog open={!!userToDeactivate} onOpenChange={(open) => !open && setUserToDeactivate(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deactivate User Account</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to deactivate the account for{" "}
+              <strong className="text-foreground">
+                {userToDeactivate && getUserFullName(userToDeactivate)}
+              </strong>{" "}
+              ({userToDeactivate?.email})?
+              <br />
+              <br />
+              This will prevent the user from logging in. You can reactivate the account later if needed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setUserToDeactivate(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeactivate}
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              Deactivate Account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Activate Confirmation Dialog */}
+      <AlertDialog open={!!userToActivate} onOpenChange={(open) => !open && setUserToActivate(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Activate User Account</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to activate the account for{" "}
+              <strong className="text-foreground">
+                {userToActivate && getUserFullName(userToActivate)}
+              </strong>{" "}
+              ({userToActivate?.email})?
+              <br />
+              <br />
+              This will allow the user to log in and access their account again.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setUserToActivate(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmActivate}
+              className="bg-primary hover:bg-primary-dark text-white"
+            >
+              Activate Account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
