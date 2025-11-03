@@ -3,13 +3,13 @@
 import { Card } from "@/components/ui/card"
 import { Sidebar } from "@/components/dashboard/sidebar"
 import { Header } from "@/components/dashboard/header"
-import { Users, FileText, TrendingUp, BookOpen } from "lucide-react"
+import { Users, FileText, TrendingUp, BookOpen, ClipboardList, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import { useDashboard } from "@/hooks/use-dashboard"
-import { formatDistanceToNow } from "date-fns"
+import { formatDistanceToNow, format } from "date-fns"
 
 export default function TeacherDashboard() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
@@ -139,6 +139,79 @@ export default function TeacherDashboard() {
                 )}
               </div>
             </Card>
+
+            {/* Upcoming Activities Grid */}
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Upcoming Exams */}
+              <Card className="p-6">
+                <h2 className="text-lg font-semibold mb-4">Upcoming Exams</h2>
+                <div className="space-y-3">
+                  {teacherStats.upcomingExams?.length === 0 ? (
+                    <div className="text-center py-8">
+                      <ClipboardList className="w-12 h-12 mx-auto mb-2 text-text-secondary/50" />
+                      <p className="text-text-secondary">No upcoming exams</p>
+                    </div>
+                  ) : (
+                    teacherStats.upcomingExams?.map((exam) => (
+                      <div
+                        key={exam._id}
+                        className="flex items-center justify-between p-4 bg-bg-secondary rounded-lg hover:bg-bg-tertiary transition-colors cursor-pointer"
+                        onClick={() => router.push(`/dashboard/exams`)}
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <ClipboardList className="w-5 h-5 text-primary shrink-0" />
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{exam.title}</p>
+                            <div className="flex items-center gap-2 text-sm text-text-secondary">
+                              <Calendar className="w-4 h-4" />
+                              <span>Due: {format(new Date(exam.dueDate), "MMM dd, yyyy hh:mm a")}</span>
+                            </div>
+                            <p className="text-xs text-text-secondary mt-1">
+                              Total Points: {exam.totalPoints}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </Card>
+
+              {/* Upcoming Quizzes */}
+              <Card className="p-6">
+                <h2 className="text-lg font-semibold mb-4">Upcoming Quizzes</h2>
+                <div className="space-y-3">
+                  {teacherStats.upcomingQuizzes?.length === 0 ? (
+                    <div className="text-center py-8">
+                      <FileText className="w-12 h-12 mx-auto mb-2 text-text-secondary/50" />
+                      <p className="text-text-secondary">No upcoming quizzes</p>
+                    </div>
+                  ) : (
+                    teacherStats.upcomingQuizzes?.map((quiz) => (
+                      <div
+                        key={quiz._id}
+                        className="flex items-center justify-between p-4 bg-bg-secondary rounded-lg hover:bg-bg-tertiary transition-colors cursor-pointer"
+                        onClick={() => router.push(`/dashboard/quizzes`)}
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <FileText className="w-5 h-5 text-accent shrink-0" />
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{quiz.title}</p>
+                            <div className="flex items-center gap-2 text-sm text-text-secondary">
+                              <Calendar className="w-4 h-4" />
+                              <span>Due: {format(new Date(quiz.dueDate), "MMM dd, yyyy hh:mm a")}</span>
+                            </div>
+                            <p className="text-xs text-text-secondary mt-1">
+                              Total Points: {quiz.totalPoints}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </Card>
+            </div>
           </div>
         </main>
       </div>

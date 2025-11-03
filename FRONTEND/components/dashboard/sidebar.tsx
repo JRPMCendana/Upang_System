@@ -107,9 +107,12 @@ export function Sidebar() {
                                   item.href.includes('/dashboard/admin')
           // Check if the current path is a sub-route of this item (e.g., /dashboard/assignments/[id]/submissions)
           const isSubRoute = pathname.startsWith(item.href + '/')
+          // Special case: Students menu (href is /dashboard/users) should highlight for /dashboard/students/[id]/grades
+          const isStudentGrades = item.href === '/dashboard/users' && pathname.startsWith('/dashboard/students/')
           const isActive = pathname === item.href || 
                           (isDashboardLink && pathname === '/dashboard') ||
-                          isSubRoute
+                          isSubRoute ||
+                          isStudentGrades
           
           return (
             <Link

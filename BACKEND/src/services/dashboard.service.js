@@ -294,6 +294,31 @@ class DashboardService {
         }
       } catch {}
 
+      // Get upcoming exams (future exams, sorted by due date, limit 3)
+      const now = new Date();
+      const upcomingExams = exams
+        .filter(exam => exam.dueDate && new Date(exam.dueDate) > now)
+        .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+        .slice(0, 3)
+        .map(exam => ({
+          _id: exam._id,
+          title: exam.title,
+          dueDate: exam.dueDate,
+          totalPoints: exam.totalPoints
+        }));
+
+      // Get upcoming quizzes (future quizzes, sorted by due date, limit 3)
+      const upcomingQuizzes = quizzes
+        .filter(quiz => quiz.dueDate && new Date(quiz.dueDate) > now)
+        .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+        .slice(0, 3)
+        .map(quiz => ({
+          _id: quiz._id,
+          title: quiz.title,
+          dueDate: quiz.dueDate,
+          totalPoints: quiz.totalPoints
+        }));
+
       return {
         totalStudents: students.length,
         totalAssignments: assignments.length,
@@ -308,6 +333,8 @@ class DashboardService {
         gradedSubmissions: totalGraded,
         averageClassGrade,
         recentSubmissions: recentWithStudents,
+        upcomingExams,
+        upcomingQuizzes,
         students: students.map(s => ({
           _id: s._id,
           name: `${s.firstName} ${s.lastName}`,

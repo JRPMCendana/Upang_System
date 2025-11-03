@@ -326,18 +326,31 @@ export default function QuizSubmissionsPage() {
                                 min="0"
                                 max={quiz?.totalPoints || 100}
                                 value={gradeFormData.grade}
-                                onChange={(e) => setGradeFormData(prev => ({ ...prev, grade: parseInt(e.target.value) || 0 }))}
+                                onChange={(e) => {
+                                  const value = parseInt(e.target.value) || 0;
+                                  const maxGrade = quiz?.totalPoints || 100;
+                                  setGradeFormData(prev => ({ ...prev, grade: Math.min(value, maxGrade) }));
+                                }}
                               />
                             </div>
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor={`feedback-${submission._id}`}>Feedback</Label>
+                            <div className="flex justify-between items-center">
+                              <Label htmlFor={`feedback-${submission._id}`}>Feedback</Label>
+                              <span className="text-xs text-text-secondary">
+                                {gradeFormData.feedback.length}/1000
+                              </span>
+                            </div>
                             <Textarea
                               id={`feedback-${submission._id}`}
                               rows={4}
                               placeholder="Provide feedback for the student..."
                               value={gradeFormData.feedback}
-                              onChange={(e) => setGradeFormData(prev => ({ ...prev, feedback: e.target.value }))}
+                              onChange={(e) => {
+                                if (e.target.value.length <= 1000) {
+                                  setGradeFormData(prev => ({ ...prev, feedback: e.target.value }));
+                                }
+                              }}
                             />
                           </div>
                           <div className="flex gap-2">

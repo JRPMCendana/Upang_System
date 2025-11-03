@@ -38,7 +38,7 @@ export function EditExamDialog({ open, onOpenChange, examId, initial, onUpdated 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent showCloseButton={false}>
         <DialogHeader>
           <DialogTitle>Edit Exam</DialogTitle>
         </DialogHeader>
@@ -69,12 +69,28 @@ export function EditExamDialog({ open, onOpenChange, examId, initial, onUpdated 
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Due Date</Label>
-              <Input type="datetime-local" value={dueDate || ""} onChange={(e) => setDueDate(e.target.value)} />
+              <Label>Due Date *</Label>
+              <Input 
+                type="datetime-local" 
+                value={dueDate || ""} 
+                onChange={(e) => setDueDate(e.target.value)} 
+                min={new Date().toISOString().slice(0, 16)}
+                required
+              />
             </div>
             <div className="space-y-2">
-              <Label>Total Points</Label>
-              <Input type="number" value={totalPoints} onChange={(e) => setTotalPoints(parseInt(e.target.value || "0", 10))} />
+              <Label>Total Points *</Label>
+              <Input 
+                type="number" 
+                min="1"
+                max="150"
+                value={totalPoints} 
+                onChange={(e) => {
+                  const value = parseInt(e.target.value || "0", 10);
+                  setTotalPoints(Math.min(Math.max(value, 1), 150));
+                }} 
+                required
+              />
             </div>
           </div>
           <div className="space-y-2">

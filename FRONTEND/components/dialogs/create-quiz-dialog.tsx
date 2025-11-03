@@ -96,7 +96,7 @@ export function CreateQuizDialog({ open, onOpenChange, onSubmit, loading }: Crea
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto" showCloseButton={false}>
         <DialogHeader>
           <DialogTitle>Create New Quiz</DialogTitle>
         </DialogHeader>
@@ -155,25 +155,30 @@ export function CreateQuizDialog({ open, onOpenChange, onSubmit, loading }: Crea
 
           {/* Due Date */}
           <div className="space-y-2">
-            <Label htmlFor="dueDate">Due Date</Label>
+            <Label htmlFor="dueDate">Due Date *</Label>
             <Input
               id="dueDate"
               type="datetime-local"
+              min={new Date().toISOString().slice(0, 16)}
               value={formData.dueDate}
               onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+              required
             />
           </div>
 
           {/* Total Points */}
           <div className="space-y-2">
-            <Label htmlFor="totalPoints">Total Points</Label>
+            <Label htmlFor="totalPoints">Total Points *</Label>
             <Input
               id="totalPoints"
               type="number"
-              min="0"
-              max="1000"
+              min="1"
+              max="150"
               value={formData.totalPoints}
-              onChange={(e) => setFormData({ ...formData, totalPoints: parseInt(e.target.value) || 0 })}
+              onChange={(e) => {
+                const value = parseInt(e.target.value) || 1
+                setFormData({ ...formData, totalPoints: Math.min(Math.max(value, 1), 150) })
+              }}
               placeholder="100"
               required
             />

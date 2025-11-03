@@ -46,7 +46,16 @@ export interface TeacherDashboardStats {
   gradedSubmissions: number
   averageClassGrade: number
   recentSubmissions: RecentSubmission[]
+  upcomingExams: UpcomingActivity[]
+  upcomingQuizzes: UpcomingActivity[]
   students: StudentInfo[]
+}
+
+export interface UpcomingActivity {
+  _id: string
+  title: string
+  dueDate: string
+  totalPoints: number
 }
 
 export interface RecentSubmission {

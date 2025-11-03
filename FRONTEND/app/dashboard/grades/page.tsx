@@ -5,7 +5,7 @@ import { Sidebar } from "@/components/dashboard/sidebar"
 import { Header } from "@/components/dashboard/header"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, Download, Loader2 } from "lucide-react"
+import { CheckCircle, RefreshCw, Loader2 } from "lucide-react"
 import {
   BarChart,
   Bar,
@@ -259,7 +259,7 @@ export default function GradesPage() {
                 <p className="text-text-secondary">View class performance and student progress</p>
               </div>
               <Button variant="outline" className="gap-2 bg-transparent" onClick={refreshStats} disabled={loading}>
-                <Download className="w-5 h-5" />
+                <RefreshCw className="w-5 h-5" />
                 {loading ? "Refreshing..." : "Refresh"}
               </Button>
             </div>
