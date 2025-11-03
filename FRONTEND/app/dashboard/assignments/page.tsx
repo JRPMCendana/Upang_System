@@ -15,7 +15,7 @@ import { useAssignments } from "@/hooks/use-assignments"
 import { CreateAssignmentDialog } from "@/components/dialogs/create-assignment-dialog"
 import { SubmitAssignmentDialog } from "@/components/dialogs/submit-assignment-dialog"
 import type { Assignment } from "@/types/assignment.types"
-import { formatDate } from "@/utils/date.utils"
+import { formatDateTime } from "@/utils/date.utils"
 
 export default function AssignmentsPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
@@ -114,7 +114,27 @@ export default function AssignmentsPage() {
     const matchesSearch =
       assignment.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (assignment.course?.title || "").toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesStatus = filterStatus === "all" || assignment.status === filterStatus
+    
+    // For teachers, filter by assignment deadline status (active vs overdue)
+    // For students, filter by their submission status (pending, submitted, graded, late)
+    let matchesStatus = filterStatus === "all"
+    
+    if (!matchesStatus && user?.role === "teacher") {
+      // Teacher filters: active (not past due) or overdue (past due)
+      const now = new Date()
+      const dueDate = new Date(assignment.dueDate)
+      const isOverdue = now > dueDate
+      
+      if (filterStatus === "active") {
+        matchesStatus = !isOverdue
+      } else if (filterStatus === "overdue") {
+        matchesStatus = isOverdue
+      }
+    } else if (!matchesStatus && user?.role === "student") {
+      // Student filters: based on their submission status
+      matchesStatus = assignment.status === filterStatus
+    }
+    
     return matchesSearch && matchesStatus
   })
 
@@ -162,17 +182,34 @@ export default function AssignmentsPage() {
                   />
                 </div>
                 <div className="flex gap-2 flex-wrap">
-                  {["all", "pending", "submitted", "graded", "late"].map((status) => (
-                    <Button
-                      key={status}
-                      variant={filterStatus === status ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setFilterStatus(status)}
-                      className="capitalize"
-                    >
-                      {status}
-                    </Button>
-                  ))}
+                  {/* Different filters for teachers vs students */}
+                  {user?.role === "teacher" ? (
+                    // Teachers: Filter by assignment deadline status
+                    ["all", "active", "overdue"].map((status) => (
+                      <Button
+                        key={status}
+                        variant={filterStatus === status ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setFilterStatus(status)}
+                        className="capitalize"
+                      >
+                        {status}
+                      </Button>
+                    ))
+                  ) : (
+                    // Students: Filter by submission status
+                    ["all", "pending", "submitted", "graded", "late"].map((status) => (
+                      <Button
+                        key={status}
+                        variant={filterStatus === status ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setFilterStatus(status)}
+                        className="capitalize"
+                      >
+                        {status}
+                      </Button>
+                    ))
+                  )}
                 </div>
               </div>
             </Card>
@@ -186,8 +223,21 @@ export default function AssignmentsPage() {
                 </Card>
               ) : (
                 filteredAssignments.map((assignment) => {
-                  // Status is already calculated correctly by the backend
-                  const displayStatus = assignment.status
+                  // Calculate status for display
+                  // For students: backend provides status (pending, submitted, graded, late)
+                  // For teachers: always calculate based on due date since backend doesn't provide per-teacher status
+                  let displayStatus: string
+                  
+                  if (user?.role === "teacher") {
+                    // Teacher view: calculate status based on due date
+                    const now = new Date()
+                    const dueDate = new Date(assignment.dueDate)
+                    displayStatus = now > dueDate ? "late" : "pending"
+                  } else {
+                    // Student view: use backend-provided status
+                    displayStatus = assignment.status || "pending"
+                  }
+                  
                   const statusColor = getStatusColor(displayStatus)
                   
                   return (
@@ -215,20 +265,17 @@ export default function AssignmentsPage() {
                             {/* Show instructions if available */}
                             {assignment.instructions && (
                               <p className="text-xs text-text-secondary mt-2 line-clamp-2">
-                                <strong>Instructions:</strong> {assignment.instructions}
+                                Instructions: {assignment.instructions}
                               </p>
                             )}
                           </div>
                         </div>
-                        <Button variant="ghost" size="icon" className="text-text-secondary shrink-0">
-                          <MoreVertical className="w-5 h-5" />
-                        </Button>
                       </div>
 
                       <div className="flex flex-wrap items-center gap-4 text-sm text-text-secondary pt-4 border-t border-border">
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4" />
-                          <span>Due: {formatDate(assignment.dueDate)}</span>
+                          <span>Due: {formatDateTime(assignment.dueDate)}</span>
                         </div>
                         {assignment.totalPoints && (
                           <div className="flex items-center gap-2">
@@ -323,20 +370,19 @@ export default function AssignmentsPage() {
         </main>
       </div>
 
-      {/* Dialogs */}
+      {/* Create Assignment Dialog */}
       <CreateAssignmentDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         onSubmit={handleCreateAssignment}
-        loading={loading}
       />
 
+      {/* Submit Assignment Dialog */}
       <SubmitAssignmentDialog
         open={submitDialogOpen}
         onOpenChange={setSubmitDialogOpen}
-        assignment={selectedAssignment}
         onSubmit={handleSubmitAssignment}
-        loading={loading}
+        assignment={selectedAssignment}
       />
     </div>
   )

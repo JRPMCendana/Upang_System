@@ -8,10 +8,18 @@ import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
+import { useDashboard } from "@/hooks/use-dashboard"
+import { formatDistanceToNow } from "date-fns"
 
 export default function TeacherDashboard() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
+
+  // Fetch teacher dashboard data
+  const { teacherStats, loading, initialLoading } = useDashboard({
+    role: "teacher",
+    autoFetch: true,
+  })
 
   useEffect(() => {
     if (authLoading) return
@@ -20,7 +28,7 @@ export default function TeacherDashboard() {
     }
   }, [isAuthenticated, user, router, authLoading])
 
-  if (authLoading) {
+  if (authLoading || initialLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-bg-secondary">
         <div className="text-center">
@@ -32,6 +40,18 @@ export default function TeacherDashboard() {
   }
 
   if (!isAuthenticated || user?.role !== "teacher") return null
+
+  // Show loading skeleton if stats not yet loaded
+  if (!teacherStats) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-bg-secondary">
+        <div className="text-center">
+          <BookOpen className="w-8 h-8 animate-pulse mx-auto mb-4 text-primary" />
+          <p className="text-text-secondary">Loading dashboard data...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex h-screen bg-bg-secondary">
@@ -47,7 +67,6 @@ export default function TeacherDashboard() {
                 <h1 className="text-3xl font-bold mb-2">Welcome back, {user.name}!</h1>
                 <p className="text-text-secondary">Manage your courses, assignments, and student progress.</p>
               </div>
-              <Button className="bg-primary hover:bg-primary-dark">Create Assignment</Button>
             </div>
 
             {/* Stats Cards */}
@@ -56,7 +75,7 @@ export default function TeacherDashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-text-secondary mb-1">Total Students</p>
-                    <p className="text-2xl font-bold">124</p>
+                    <p className="text-2xl font-bold">{teacherStats.totalStudents}</p>
                   </div>
                   <Users className="w-10 h-10 text-accent/20" />
                 </div>
@@ -65,7 +84,7 @@ export default function TeacherDashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-text-secondary mb-1">Pending Reviews</p>
-                    <p className="text-2xl font-bold">18</p>
+                    <p className="text-2xl font-bold">{teacherStats.pendingGrading}</p>
                   </div>
                   <FileText className="w-10 h-10 text-warning/20" />
                 </div>
@@ -74,9 +93,11 @@ export default function TeacherDashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-text-secondary mb-1">Class Avg. Grade</p>
-                    <p className="text-2xl font-bold">84%</p>
+                    <p className="text-2xl font-bold">
+                      {teacherStats.averageClassGrade > 0 ? `${teacherStats.averageClassGrade}%` : "N/A"}
+                    </p>
                   </div>
-                  <TrendingUp className="w-10 h-10 text-danger/20" />
+                  <TrendingUp className="w-10 h-10 text-success/20" />
                 </div>
               </Card>
             </div>
@@ -85,23 +106,37 @@ export default function TeacherDashboard() {
             <Card className="p-6">
               <h2 className="text-lg font-semibold mb-4">Assignments Awaiting Review</h2>
               <div className="space-y-3">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="flex items-center justify-between p-4 bg-bg-secondary rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <FileText className="w-5 h-5 text-accent" />
-                      <div>
-                        <p className="font-medium">
-                          Assignment {i}:{" "}
-                          {["Math Problem Set", "Essay Writing", "Science Project", "History Report"][i - 1]}
-                        </p>
-                        <p className="text-sm text-text-secondary">{Math.floor(Math.random() * 20) + 10} submissions</p>
-                      </div>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      Grade
-                    </Button>
+                {teacherStats.recentSubmissions.length === 0 ? (
+                  <div className="text-center py-8">
+                    <FileText className="w-12 h-12 mx-auto mb-2 text-text-secondary/50" />
+                    <p className="text-text-secondary">No pending submissions</p>
                   </div>
-                ))}
+                ) : (
+                  teacherStats.recentSubmissions.map((submission) => (
+                    <div key={submission._id} className="flex items-center justify-between p-4 bg-bg-secondary rounded-lg hover:bg-bg-tertiary transition-colors">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <FileText className="w-5 h-5 text-accent shrink-0" />
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">{submission.assignment.title}</p>
+                          <p className="text-sm text-text-secondary">
+                            {submission.student.firstName} {submission.student.lastName}
+                          </p>
+                          <p className="text-xs text-text-secondary">
+                            Submitted {formatDistanceToNow(new Date(submission.submittedAt), { addSuffix: true })}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => router.push("/dashboard/assignments")}
+                        className="shrink-0"
+                      >
+                        Grade
+                      </Button>
+                    </div>
+                  ))
+                )}
               </div>
             </Card>
           </div>
