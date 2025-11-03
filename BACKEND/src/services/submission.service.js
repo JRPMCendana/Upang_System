@@ -141,6 +141,30 @@ class SubmissionService {
         };
       }
 
+      // Prevent unsubmit if already graded
+      if (submission.grade !== null || submission.gradedAt !== null) {
+        throw {
+          status: 400,
+          message: 'Cannot unsubmit assignment. It has already been graded by your teacher.'
+        };
+      }
+
+      // Verify assignment due date hasn't passed
+      const assignment = await Assignment.findById(assignmentId);
+      if (!assignment) {
+        throw {
+          status: 404,
+          message: 'Assignment not found'
+        };
+      }
+
+      if (new Date(assignment.dueDate) < new Date()) {
+        throw {
+          status: 400,
+          message: 'Cannot unsubmit assignment. Due date has passed.'
+        };
+      }
+
       // Delete file from GridFS
       if (submission.submittedDocument) {
         try {
@@ -206,6 +230,14 @@ class SubmissionService {
         throw {
           status: 400,
           message: 'Assignment is not submitted. Use submit endpoint instead.'
+        };
+      }
+
+      // Prevent replace if already graded
+      if (submission.grade !== null || submission.gradedAt !== null) {
+        throw {
+          status: 400,
+          message: 'Cannot replace submission. It has already been graded by your teacher.'
         };
       }
 

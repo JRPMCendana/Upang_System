@@ -20,8 +20,15 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Loader2, UserCog, Eye, EyeOff } from "lucide-react"
-import { userService, type User } from "@/services/user-service"
-import { useToast } from "@/hooks/use-toast"
+import type { User } from "@/types/user.types"
+import { useUsers } from "@/hooks/use-users"
+import { getUserFullName } from "@/utils/user.utils"
+import { 
+  validateEmail, 
+  validatePassword, 
+  validateMinLength, 
+  validateMaxLength 
+} from "@/utils/validation.utils"
 
 interface EditUserFormProps {
   open: boolean
@@ -31,8 +38,7 @@ interface EditUserFormProps {
 }
 
 export function EditUserForm({ open, onOpenChange, onSuccess, user }: EditUserFormProps) {
-  const { toast } = useToast()
-  const [loading, setLoading] = useState(false)
+  const { updateUser, assignTeacher, unassignTeacher, loading: hookLoading } = useUsers()
   const [showPassword, setShowPassword] = useState(false)
   const [teachers, setTeachers] = useState<User[]>([])
   const [loadingTeachers, setLoadingTeachers] = useState(false)
@@ -48,7 +54,6 @@ export function EditUserForm({ open, onOpenChange, onSuccess, user }: EditUserFo
 
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // Load form data when user changes
   useEffect(() => {
     if (user) {
       setFormData({
@@ -62,56 +67,62 @@ export function EditUserForm({ open, onOpenChange, onSuccess, user }: EditUserFo
     }
   }, [user])
 
-  // Load teachers list if user is a student
   useEffect(() => {
     if (user?.role === "student" && open) {
       fetchTeachers()
     }
   }, [user, open])
 
+  const { users: fetchedTeachers, fetchUsers } = useUsers()
+
   const fetchTeachers = async () => {
-    try {
-      setLoadingTeachers(true)
-      const response = await userService.getUsers(1, 100, "teacher", "active")
-      setTeachers(response.data)
-    } catch (error) {
-      console.error("Error fetching teachers:", error)
-    } finally {
-      setLoadingTeachers(false)
-    }
+    setLoadingTeachers(true)
+    await fetchUsers(1, { role: "teacher", status: "active", limit: 100 })
+    setLoadingTeachers(false)
   }
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
 
-    // Email validation
-    if (formData.email.trim() && !/^\S+@\S+\.\S+$/.test(formData.email)) {
+    // Email validation (optional field)
+    if (formData.email.trim() && !validateEmail(formData.email)) {
       newErrors.email = "Invalid email format"
     }
 
-    // Username validation
+    // Username validation (optional field)
     if (formData.username.trim()) {
-      if (formData.username.trim().length < 3) {
-        newErrors.username = "Username must be at least 3 characters"
-      } else if (formData.username.trim().length > 50) {
-        newErrors.username = "Username cannot exceed 50 characters"
+      const minLengthError = validateMinLength(formData.username, 3, "Username")
+      if (minLengthError) {
+        newErrors.username = minLengthError
+      } else {
+        const maxLengthError = validateMaxLength(formData.username, 50, "Username")
+        if (maxLengthError) {
+          newErrors.username = maxLengthError
+        }
       }
     }
 
-    // Password validation (only if provided)
+    // Password validation (optional field)
     if (formData.password.trim()) {
-      if (formData.password.trim().length < 6) {
+      const passwordValidation = validatePassword(formData.password)
+      if (!passwordValidation.valid && formData.password.trim().length < 6) {
         newErrors.password = "Password must be at least 6 characters"
       }
     }
 
-    // Name validation
-    if (formData.firstName && formData.firstName.length > 50) {
-      newErrors.firstName = "First name cannot exceed 50 characters"
+    // Optional fields validation
+    if (formData.firstName) {
+      const firstNameError = validateMaxLength(formData.firstName, 50, "First name")
+      if (firstNameError) {
+        newErrors.firstName = firstNameError
+      }
     }
 
-    if (formData.lastName && formData.lastName.length > 50) {
-      newErrors.lastName = "Last name cannot exceed 50 characters"
+    if (formData.lastName) {
+      const lastNameError = validateMaxLength(formData.lastName, 50, "Last name")
+      if (lastNameError) {
+        newErrors.lastName = lastNameError
+      }
     }
 
     setErrors(newErrors)
@@ -127,77 +138,55 @@ export function EditUserForm({ open, onOpenChange, onSuccess, user }: EditUserFo
       return
     }
 
-    setLoading(true)
+    const updateData: any = {}
+    
+    if (formData.email.trim() !== user.email) {
+      updateData.email = formData.email.trim()
+    }
+    
+    if (formData.username.trim() !== user.username) {
+      updateData.username = formData.username.trim()
+    }
+    
+    if (formData.firstName.trim() !== (user.firstName || "")) {
+      updateData.firstName = formData.firstName.trim() || undefined
+    }
+    
+    if (formData.lastName.trim() !== (user.lastName || "")) {
+      updateData.lastName = formData.lastName.trim() || undefined
+    }
+    
+    if (formData.password.trim()) {
+      updateData.password = formData.password.trim()
+    }
 
-    try {
-      // Prepare update data (only include changed fields)
-      const updateData: any = {}
-      
-      if (formData.email.trim() !== user.email) {
-        updateData.email = formData.email.trim()
-      }
-      
-      if (formData.username.trim() !== user.username) {
-        updateData.username = formData.username.trim()
-      }
-      
-      if (formData.firstName.trim() !== (user.firstName || "")) {
-        updateData.firstName = formData.firstName.trim() || undefined
-      }
-      
-      if (formData.lastName.trim() !== (user.lastName || "")) {
-        updateData.lastName = formData.lastName.trim() || undefined
-      }
-      
-      if (formData.password.trim()) {
-        updateData.password = formData.password.trim()
-      }
+    let success = true
+    if (Object.keys(updateData).length > 0) {
+      success = await updateUser(user._id, updateData)
+    }
 
-      // Update user basic info if there are changes
-      if (Object.keys(updateData).length > 0) {
-        await userService.updateUser(user._id, updateData)
-      }
+    if (success && user.role === "student") {
+      const currentTeacherId = typeof user.assignedTeacher === 'object' && user.assignedTeacher 
+        ? user.assignedTeacher._id 
+        : (user.assignedTeacher as string) || ""
 
-      // Handle teacher assignment for students
-      if (user.role === "student") {
-        const currentTeacherId = typeof user.assignedTeacher === 'object' && user.assignedTeacher 
-          ? user.assignedTeacher._id 
-          : (user.assignedTeacher as string) || ""
-
-        if (formData.assignedTeacher !== currentTeacherId) {
-          if (formData.assignedTeacher) {
-            // Assign new teacher
-            await userService.assignTeacher(user._id, formData.assignedTeacher)
-          } else if (currentTeacherId) {
-            // Unassign teacher
-            await userService.unassignTeacher(user._id)
-          }
+      if (formData.assignedTeacher !== currentTeacherId) {
+        if (formData.assignedTeacher) {
+          success = await assignTeacher(user._id, formData.assignedTeacher)
+        } else if (currentTeacherId) {
+          success = await unassignTeacher(user._id)
         }
       }
+    }
 
-      toast({
-        title: "Success",
-        description: "User updated successfully!",
-      })
-
-      // Close dialog and refresh parent
+    if (success) {
       onOpenChange(false)
       onSuccess?.()
-    } catch (error: any) {
-      console.error("Error updating user:", error)
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update user. Please try again.",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
     }
   }
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
-    // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }))
     }
@@ -220,7 +209,6 @@ export function EditUserForm({ open, onOpenChange, onSuccess, user }: EditUserFo
 
         <form onSubmit={handleSubmit}>
           <div className="grid gap-3 py-2">
-            {/* Row 1: Username and Email */}
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1.5">
                 <Label htmlFor="username" className="text-sm">Username</Label>
@@ -231,7 +219,7 @@ export function EditUserForm({ open, onOpenChange, onSuccess, user }: EditUserFo
                   value={formData.username}
                   onChange={(e) => handleChange("username", e.target.value)}
                   className={`h-9 ${errors.username ? "border-danger" : ""}`}
-                  disabled={loading}
+                  disabled={hookLoading}
                 />
                 {errors.username && (
                   <p className="text-xs text-danger">{errors.username}</p>
@@ -247,7 +235,7 @@ export function EditUserForm({ open, onOpenChange, onSuccess, user }: EditUserFo
                   value={formData.email}
                   onChange={(e) => handleChange("email", e.target.value)}
                   className={`h-9 ${errors.email ? "border-danger" : ""}`}
-                  disabled={loading}
+                  disabled={hookLoading}
                 />
                 {errors.email && (
                   <p className="text-xs text-danger">{errors.email}</p>
@@ -255,7 +243,6 @@ export function EditUserForm({ open, onOpenChange, onSuccess, user }: EditUserFo
               </div>
             </div>
 
-            {/* Row 2: First Name and Last Name */}
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1.5">
                 <Label htmlFor="firstName" className="text-sm">First Name</Label>
@@ -266,7 +253,7 @@ export function EditUserForm({ open, onOpenChange, onSuccess, user }: EditUserFo
                   value={formData.firstName}
                   onChange={(e) => handleChange("firstName", e.target.value)}
                   className={`h-9 ${errors.firstName ? "border-danger" : ""}`}
-                  disabled={loading}
+                  disabled={hookLoading}
                 />
                 {errors.firstName && (
                   <p className="text-xs text-danger">{errors.firstName}</p>
@@ -282,7 +269,7 @@ export function EditUserForm({ open, onOpenChange, onSuccess, user }: EditUserFo
                   value={formData.lastName}
                   onChange={(e) => handleChange("lastName", e.target.value)}
                   className={`h-9 ${errors.lastName ? "border-danger" : ""}`}
-                  disabled={loading}
+                  disabled={hookLoading}
                 />
                 {errors.lastName && (
                   <p className="text-xs text-danger">{errors.lastName}</p>
@@ -290,7 +277,6 @@ export function EditUserForm({ open, onOpenChange, onSuccess, user }: EditUserFo
               </div>
             </div>
 
-            {/* Row 3: Password */}
             <div className="grid gap-1.5">
               <Label htmlFor="password" className="text-sm">
                 Password <span className="text-text-secondary text-xs">(leave empty to keep current)</span>
@@ -303,13 +289,13 @@ export function EditUserForm({ open, onOpenChange, onSuccess, user }: EditUserFo
                   value={formData.password}
                   onChange={(e) => handleChange("password", e.target.value)}
                   className={`h-9 pr-10 ${errors.password ? "border-danger" : ""}`}
-                  disabled={loading}
+                  disabled={hookLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary transition-colors"
-                  disabled={loading}
+                  disabled={hookLoading}
                 >
                   {showPassword ? (
                     <EyeOff className="w-4 h-4" />
@@ -323,14 +309,13 @@ export function EditUserForm({ open, onOpenChange, onSuccess, user }: EditUserFo
               )}
             </div>
 
-            {/* Row 4: Assigned Teacher (only for students) */}
             {user.role === "student" && (
               <div className="grid gap-1.5">
                 <Label htmlFor="assignedTeacher" className="text-sm">Assigned Teacher</Label>
                 <Select
                   value={formData.assignedTeacher || "none"}
                   onValueChange={(value) => handleChange("assignedTeacher", value === "none" ? "" : value)}
-                  disabled={loading || loadingTeachers}
+                  disabled={hookLoading || loadingTeachers}
                 >
                   <SelectTrigger id="assignedTeacher" className="h-9">
                     <SelectValue placeholder={loadingTeachers ? "Loading teachers..." : "Select a teacher"} />
@@ -339,7 +324,7 @@ export function EditUserForm({ open, onOpenChange, onSuccess, user }: EditUserFo
                     <SelectItem value="none">No teacher assigned</SelectItem>
                     {teachers.map((teacher) => (
                       <SelectItem key={teacher._id} value={teacher._id}>
-                        {userService.getUserFullName(teacher)} (@{teacher.username})
+                        {getUserFullName(teacher)} (@{teacher.username})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -352,10 +337,10 @@ export function EditUserForm({ open, onOpenChange, onSuccess, user }: EditUserFo
             <Button
               type="submit"
               className="bg-primary hover:bg-primary-dark"
-              disabled={loading}
+              disabled={hookLoading}
               size="sm"
             >
-              {loading ? (
+              {hookLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Updating...

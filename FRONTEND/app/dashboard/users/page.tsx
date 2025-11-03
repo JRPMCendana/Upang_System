@@ -20,28 +20,23 @@ import {
 import { Users as UsersIcon, Search, Plus, Shield, Mail, MoreVertical, Pencil, Trash2, UserX, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
-import { userService, type User } from "@/services/user-service"
-import { useToast } from "@/hooks/use-toast"
+import { useEffect, useState, useMemo } from "react"
+import type { User } from "@/types/user.types"
 import { CreateUserForm } from "@/components/forms/create-user-form"
 import { EditUserForm } from "@/components/forms/edit-user-form"
 import { StudentDetailDialog } from "@/components/dialogs/student-detail-dialog"
 import { UsersSkeleton } from "@/components/skeletons"
+import { getUserFullName } from "@/utils/user.utils"
+import { useUsers } from "@/hooks/use-users"
 
 export default function UsersPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
-  const { toast } = useToast()
   
+  // UI State
   const [searchQuery, setSearchQuery] = useState("")
-  const [roleFilter, setRoleFilter] = useState<"all" | "student" | "teacher">("all") // Default to students for teachers
+  const [roleFilter, setRoleFilter] = useState<"all" | "student" | "teacher">("all")
   const [statusFilter, setStatusFilter] = useState<"active" | "deactivated" | "deleted" | "all">("active")
-  const [users, setUsers] = useState<User[]>([])
-  const [loading, setLoading] = useState(true)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
-  const [totalItems, setTotalItems] = useState(0)
-  const limit = 10
   const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false)
   const [userToDelete, setUserToDelete] = useState<User | null>(null)
   const [userToEdit, setUserToEdit] = useState<User | null>(null)
@@ -49,6 +44,21 @@ export default function UsersPage() {
 
   const isAdmin = user?.role === "admin"
   const isTeacher = user?.role === "teacher"
+
+  // Use custom hook for user management
+  const {
+    users,
+    loading,
+    initialLoading,
+    currentPage,
+    totalPages,
+    totalItems,
+    fetchUsers,
+    changeUserStatus,
+    setPage,
+  } = useUsers({
+    role: isTeacher ? "teacher" : "admin",
+  })
 
   useEffect(() => {
     if (authLoading) return
@@ -64,64 +74,22 @@ export default function UsersPage() {
 
   useEffect(() => {
     if (isAuthenticated && (user?.role === "admin" || user?.role === "teacher")) {
-      fetchUsers()
+      fetchUsers(currentPage, {
+        role: roleFilter === "all" ? undefined : roleFilter,
+        status: statusFilter === "all" ? undefined : statusFilter,
+        limit: 10,
+      })
     }
-  }, [isAuthenticated, user, currentPage, roleFilter, statusFilter])
+  }, [isAuthenticated, user, currentPage, roleFilter, statusFilter, fetchUsers])
 
-  const fetchUsers = async () => {
-    try {
-      setLoading(true)
-      
-      let response
-      if (isTeacher) {
-        // Teachers only see their assigned students
-        response = await userService.getAssignedStudents(currentPage, limit)
-      } else {
-        // Admins see all users with filters
-        response = await userService.getUsers(
-          currentPage,
-          limit,
-          roleFilter === "all" ? undefined : roleFilter,
-          statusFilter === "all" ? undefined : statusFilter
-        )
-      }
-      
-      setUsers(response.data)
-      setTotalPages(response.pagination.totalPages)
-      setTotalItems(response.pagination.totalItems)
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load users. Please try again.",
-        variant: "destructive",
-      })
-      console.error("Error fetching users:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleStatusChange = async (userId: string, newStatus: "active" | "deactivated" | "deleted") => {
-    try {
-      await userService.updateUser(userId, { status: newStatus })
-      toast({
-        title: "Success",
-        description: `User ${newStatus === "active" ? "activated" : newStatus === "deactivated" ? "deactivated" : "deleted"} successfully.`,
-      })
-      fetchUsers()
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update user status.",
-        variant: "destructive",
-      })
-    }
+  const handleStatusChange = async (userId: string, newStatus: User["status"]) => {
+    await changeUserStatus(userId, newStatus)
   }
 
   const confirmDelete = async () => {
     if (!userToDelete) return
     
-    await handleStatusChange(userToDelete._id, "deleted")
+    await changeUserStatus(userToDelete._id, "deleted")
     setUserToDelete(null)
   }
 
@@ -130,7 +98,7 @@ export default function UsersPage() {
   // Client-side search filtering
   const filteredUsers = users.filter((u) => {
     const q = searchQuery.toLowerCase()
-    const userName = userService.getUserFullName(u).toLowerCase()
+    const userName = getUserFullName(u).toLowerCase()
     const matchesQuery = userName.includes(q) || u.email.toLowerCase().includes(q) || u.username.toLowerCase().includes(q)
     return matchesQuery
   })
@@ -160,7 +128,7 @@ export default function UsersPage() {
     />
   )
 
-  if (authLoading || loading) {
+  if (authLoading || initialLoading) {
     return (
       <div className="flex h-screen bg-bg-secondary">
         <Sidebar />
@@ -222,7 +190,7 @@ export default function UsersPage() {
                         value={roleFilter}
                         onValueChange={(value: any) => {
                           setRoleFilter(value)
-                          setCurrentPage(1)
+                          setPage(1)
                         }}
                       >
                         <SelectTrigger className="w-[140px]">
@@ -243,7 +211,7 @@ export default function UsersPage() {
                         value={statusFilter}
                         onValueChange={(value: any) => {
                           setStatusFilter(value)
-                          setCurrentPage(1)
+                          setPage(1)
                         }}
                       >
                         <SelectTrigger className="w-[140px]">
@@ -262,7 +230,12 @@ export default function UsersPage() {
             </Card>
 
             {/* Users list */}
-            <Card className="overflow-hidden">
+            <Card className="overflow-hidden relative">
+              {loading && (
+                <div className="absolute inset-0 bg-bg-primary/50 backdrop-blur-sm z-10 flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              )}
               {filteredUsers.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-text-secondary">
                   <UsersIcon className="w-12 h-12 mb-4 opacity-50" />
@@ -287,7 +260,7 @@ export default function UsersPage() {
                         <tr key={u._id} className="border-t border-border hover:bg-bg-secondary/70">
                           <td className="px-6 py-3 font-medium">{u.username}</td>
                           <td className="px-6 py-3 text-text-secondary">
-                            {userService.getUserFullName(u)}
+                            {getUserFullName(u)}
                           </td>
                           <td className="px-6 py-3 text-text-secondary flex items-center gap-2">
                             <Mail className="w-4 h-4" /> {u.email}
@@ -365,13 +338,13 @@ export default function UsersPage() {
             {!loading && totalPages > 1 && (
               <div className="flex items-center justify-between">
                 <p className="text-sm text-text-secondary">
-                  Showing {((currentPage - 1) * limit) + 1} to {Math.min(currentPage * limit, totalItems)} of {totalItems} users
+                  Showing {((currentPage - 1) * 10) + 1} to {Math.min(currentPage * 10, totalItems)} of {totalItems} users
                 </p>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    onClick={() => setPage(Math.max(1, currentPage - 1))}
                     disabled={currentPage === 1}
                   >
                     <ChevronLeft className="w-4 h-4" />
@@ -395,7 +368,7 @@ export default function UsersPage() {
                           variant={currentPage === pageNum ? "default" : "outline"}
                           size="sm"
                           className="w-9"
-                          onClick={() => setCurrentPage(pageNum)}
+                          onClick={() => setPage(pageNum)}
                         >
                           {pageNum}
                         </Button>
@@ -405,7 +378,7 @@ export default function UsersPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                    onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage === totalPages}
                   >
                     Next
@@ -422,14 +395,22 @@ export default function UsersPage() {
       <CreateUserForm
         open={createUserDialogOpen}
         onOpenChange={setCreateUserDialogOpen}
-        onSuccess={fetchUsers}
+        onSuccess={() => fetchUsers(currentPage, {
+          role: roleFilter === "all" ? undefined : roleFilter,
+          status: statusFilter === "all" ? undefined : statusFilter,
+          limit: 10,
+        })}
       />
 
       {/* Edit User Dialog */}
       <EditUserForm
         open={!!userToEdit}
         onOpenChange={(open) => !open && setUserToEdit(null)}
-        onSuccess={fetchUsers}
+        onSuccess={() => fetchUsers(currentPage, {
+          role: roleFilter === "all" ? undefined : roleFilter,
+          status: statusFilter === "all" ? undefined : statusFilter,
+          limit: 10,
+        })}
         user={userToEdit}
       />
 
@@ -448,7 +429,7 @@ export default function UsersPage() {
             <AlertDialogDescription>
               Are you sure you want to delete the account for{" "}
               <strong className="text-foreground">
-                {userToDelete && userService.getUserFullName(userToDelete)}
+                {userToDelete && getUserFullName(userToDelete)}
               </strong>{" "}
               ({userToDelete?.email})?
               <br />

@@ -8,20 +8,25 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
-import { userService, type User } from "@/services/user-service"
-import { useToast } from "@/hooks/use-toast"
+import { useEffect } from "react"
 import { DashboardSkeleton } from "@/components/skeletons"
+import { getUserFullName } from "@/utils/user.utils"
+import { useAdminStats } from "@/hooks/use-admin-stats"
+import { formatRelativeTime } from "@/utils/date.utils"
 
 export default function AdminDashboard() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
-  const { toast } = useToast()
-
-  const [recentUsers, setRecentUsers] = useState<User[]>([])
-  const [loading, setLoading] = useState(true)
-  const [totalStudents, setTotalStudents] = useState(0)
-  const [totalTeachers, setTotalTeachers] = useState(0)
+  
+  // Use custom hook for admin statistics
+  const {
+    recentUsers,
+    recentUsersLoading,
+    totalStudents,
+    totalTeachers,
+    statsLoading,
+    refreshAll,
+  } = useAdminStats()
 
   useEffect(() => {
     // Wait for auth to finish loading before checking
@@ -34,43 +39,9 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (isAuthenticated && user?.role === "admin") {
-      fetchRecentUsers()
-      fetchUserStats()
+      refreshAll()
     }
-  }, [isAuthenticated, user])
-
-  const fetchRecentUsers = async () => {
-    try {
-      setLoading(true)
-      // Fetch first 5 active users sorted by creation date (most recent)
-      const response = await userService.getUsers(1, 5, undefined, "active")
-      setRecentUsers(response.data)
-    } catch (error) {
-      console.error("Error fetching recent users:", error)
-      toast({
-        title: "Error",
-        description: "Failed to load recent users.",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchUserStats = async () => {
-    try {
-      // Fetch active student count
-      const studentsResponse = await userService.getUsers(1, 1, "student", "active")
-      setTotalStudents(studentsResponse.pagination.totalItems)
-
-      // Fetch active teacher count
-      const teachersResponse = await userService.getUsers(1, 1, "teacher", "active")
-      setTotalTeachers(teachersResponse.pagination.totalItems)
-    } catch (error) {
-      console.error("Error fetching user stats:", error)
-    }
-  }
-
+  }, [isAuthenticated, user, refreshAll])
   const getRoleBadge = (role: string) => {
     switch (role) {
       case "student":
@@ -84,21 +55,8 @@ export default function AdminDashboard() {
     }
   }
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffTime = Math.abs(now.getTime() - date.getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    
-    if (diffDays === 0) return "Today"
-    if (diffDays === 1) return "Yesterday"
-    if (diffDays < 7) return `${diffDays} days ago`
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`
-    return `${Math.floor(diffDays / 30)} months ago`
-  }
-
   // Show loading state while checking auth or fetching data
-  if (authLoading || loading) {
+  if (authLoading || recentUsersLoading || statsLoading) {
     return (
       <div className="flex h-screen bg-bg-secondary">
         <Sidebar />
@@ -192,7 +150,7 @@ export default function AdminDashboard() {
                 </Button>
               </div>
 
-              {loading ? (
+              {recentUsersLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 </div>
@@ -211,14 +169,14 @@ export default function AdminDashboard() {
                         </div>
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <p className="font-medium">{userService.getUserFullName(u)}</p>
+                            <p className="font-medium">{getUserFullName(u)}</p>
                             {getRoleBadge(u.role)}
                           </div>
                           <p className="text-sm text-text-secondary">
                             @{u.username} • {u.email}
                           </p>
                           <p className="text-xs text-text-tertiary mt-0.5">
-                            Joined {formatDate(u.createdAt)}
+                            Joined {formatRelativeTime(u.createdAt)}
                           </p>
                         </div>
                       </div>
@@ -255,26 +213,6 @@ export default function AdminDashboard() {
                     <p className="text-2xl font-bold">86%</p>
                   </div>
                   <TrendingUp className="w-10 h-10 text-warning/20" />
-                </div>
-              </Card>
-            </div>
-
-            {/* System Alerts */}
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card className="p-6">
-                <h2 className="text-lg font-semibold mb-4">Course Statistics</h2>
-                <div className="space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i}>
-                      <div className="flex justify-between mb-2">
-                        <span className="text-sm font-medium">Course {i}</span>
-                        <span className="text-sm text-text-secondary">{30 + i * 10} students</span>
-                      </div>
-                      <div className="w-full bg-bg-secondary rounded-full h-2">
-                        <div className="bg-primary h-2 rounded-full" style={{ width: `${60 + i * 10}%` }} />
-                      </div>
-                    </div>
-                  ))}
                 </div>
               </Card>
             </div>

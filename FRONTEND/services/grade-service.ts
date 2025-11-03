@@ -1,17 +1,10 @@
 // Grade Tracking Service
 
 import { apiClient } from "./api-client"
+import type { Grade } from "@/types/grade.types"
 
-export interface Grade {
-  id: string
-  studentId: string
-  courseId: string
-  score: number
-  percentage: number
-  feedback?: string
-  type: "assignment" | "quiz" | "exam"
-  createdAt: string
-}
+// Re-export types for backward compatibility
+export type { Grade } from "@/types/grade.types"
 
 class GradeService {
   async getGrades(filters?: Record<string, any>) {

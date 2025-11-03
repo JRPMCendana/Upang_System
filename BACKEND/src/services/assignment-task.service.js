@@ -1,4 +1,5 @@
 const Assignment = require('../models/Assignment.model');
+const AssignmentSubmission = require('../models/AssignmentSubmission.model');
 const User = require('../models/User.model');
 const DbUtils = require('../utils/db.utils');
 const { deleteFileFromGridFS } = require('../middleware/upload.middleware');
@@ -189,10 +190,58 @@ class AssignmentTaskService {
         Assignment.countDocuments({ assignedTo: studentId })
       ]);
 
+      // Fetch submission status for each assignment
+      const assignmentIds = assignments.map(a => a._id);
+      const submissions = await AssignmentSubmission.find({
+        assignment: { $in: assignmentIds },
+        student: studentId
+      });
+
+      // Create a map of assignment ID to submission
+      const submissionMap = new Map();
+      submissions.forEach(sub => {
+        submissionMap.set(sub.assignment.toString(), sub);
+      });
+
+      // Add submission info to each assignment and calculate dynamic status
+      const assignmentsWithSubmission = assignments.map(assignment => {
+        const assignmentObj = assignment.toObject();
+        const submission = submissionMap.get(assignment._id.toString());
+        const now = new Date();
+        const dueDate = new Date(assignment.dueDate);
+        
+        // Calculate status based on submission state and due date
+        let status = 'pending';
+        if (submission && submission.isSubmitted) {
+          if (submission.grade !== null && submission.gradedAt !== null) {
+            status = 'graded';
+          } else {
+            status = 'submitted';
+          }
+        } else if (now > dueDate) {
+          status = 'late';
+        }
+        
+        return {
+          ...assignmentObj,
+          status, // Override with calculated status
+          submission: submission ? {
+            _id: submission._id,
+            isSubmitted: submission.isSubmitted,
+            submittedAt: submission.submittedAt,
+            grade: submission.grade,
+            feedback: submission.feedback,
+            gradedAt: submission.gradedAt,
+            submittedDocument: submission.submittedDocument,
+            submittedDocumentName: submission.submittedDocumentName
+          } : null
+        };
+      });
+
       const totalPages = Math.ceil(total / limitNum);
 
       return {
-        assignments,
+        assignments: assignmentsWithSubmission,
         pagination: {
           currentPage: pageNum,
           limit: limitNum,

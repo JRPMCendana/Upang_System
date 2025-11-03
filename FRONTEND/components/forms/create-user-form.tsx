@@ -20,8 +20,14 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Loader2, UserPlus, Eye, EyeOff } from "lucide-react"
-import { userService } from "@/services/user-service"
-import { useToast } from "@/hooks/use-toast"
+import { useUsers } from "@/hooks/use-users"
+import { 
+  validateEmail, 
+  validatePassword, 
+  validateRequired, 
+  validateMinLength, 
+  validateMaxLength 
+} from "@/utils/validation.utils"
 
 interface CreateUserFormProps {
   open: boolean
@@ -30,8 +36,7 @@ interface CreateUserFormProps {
 }
 
 export function CreateUserForm({ open, onOpenChange, onSuccess }: CreateUserFormProps) {
-  const { toast } = useToast()
-  const [loading, setLoading] = useState(false)
+  const { createUser, loading: hookLoading } = useUsers()
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
     email: "",
@@ -47,38 +52,59 @@ export function CreateUserForm({ open, onOpenChange, onSuccess }: CreateUserForm
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
 
-    // Required fields validation
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required"
-    } else if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
+    // Email validation
+    const emailError = validateRequired(formData.email, "Email")
+    if (emailError) {
+      newErrors.email = emailError
+    } else if (!validateEmail(formData.email)) {
       newErrors.email = "Invalid email format"
     }
 
-    if (!formData.username.trim()) {
-      newErrors.username = "Username is required"
-    } else if (formData.username.trim().length < 3) {
-      newErrors.username = "Username must be at least 3 characters"
-    } else if (formData.username.trim().length > 50) {
-      newErrors.username = "Username cannot exceed 50 characters"
+    // Username validation
+    const usernameError = validateRequired(formData.username, "Username")
+    if (usernameError) {
+      newErrors.username = usernameError
+    } else {
+      const minLengthError = validateMinLength(formData.username, 3, "Username")
+      if (minLengthError) {
+        newErrors.username = minLengthError
+      } else {
+        const maxLengthError = validateMaxLength(formData.username, 50, "Username")
+        if (maxLengthError) {
+          newErrors.username = maxLengthError
+        }
+      }
     }
 
-    if (!formData.password.trim()) {
-      newErrors.password = "Password is required"
-    } else if (formData.password.trim().length < 6) {
-      newErrors.password = "Password must be at least 6 characters"
+    // Password validation
+    const passwordError = validateRequired(formData.password, "Password")
+    if (passwordError) {
+      newErrors.password = passwordError
+    } else {
+      const passwordValidation = validatePassword(formData.password)
+      if (!passwordValidation.valid) {
+        newErrors.password = passwordValidation.errors[0]
+      }
     }
 
+    // Role validation
     if (!formData.role) {
       newErrors.role = "Role is required"
     }
 
     // Optional fields validation
-    if (formData.firstName && formData.firstName.length > 50) {
-      newErrors.firstName = "First name cannot exceed 50 characters"
+    if (formData.firstName) {
+      const firstNameError = validateMaxLength(formData.firstName, 50, "First name")
+      if (firstNameError) {
+        newErrors.firstName = firstNameError
+      }
     }
 
-    if (formData.lastName && formData.lastName.length > 50) {
-      newErrors.lastName = "Last name cannot exceed 50 characters"
+    if (formData.lastName) {
+      const lastNameError = validateMaxLength(formData.lastName, 50, "Last name")
+      if (lastNameError) {
+        newErrors.lastName = lastNameError
+      }
     }
 
     setErrors(newErrors)
@@ -92,23 +118,16 @@ export function CreateUserForm({ open, onOpenChange, onSuccess }: CreateUserForm
       return
     }
 
-    setLoading(true)
+    const success = await createUser({
+      email: formData.email.trim(),
+      password: formData.password.trim(),
+      username: formData.username.trim(),
+      role: formData.role,
+      firstName: formData.firstName.trim() || undefined,
+      lastName: formData.lastName.trim() || undefined,
+    })
 
-    try {
-      await userService.createUser({
-        email: formData.email.trim(),
-        password: formData.password.trim(),
-        username: formData.username.trim(),
-        role: formData.role,
-        firstName: formData.firstName.trim() || undefined,
-        lastName: formData.lastName.trim() || undefined,
-      })
-
-      toast({
-        title: "Success",
-        description: `${formData.role === "student" ? "Student" : "Teacher"} account created successfully!`,
-      })
-
+    if (success) {
       // Reset form
       setFormData({
         email: "",
@@ -123,15 +142,6 @@ export function CreateUserForm({ open, onOpenChange, onSuccess }: CreateUserForm
       // Close dialog and refresh parent
       onOpenChange(false)
       onSuccess?.()
-    } catch (error: any) {
-      console.error("Error creating user:", error)
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create user. Please try again.",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -192,7 +202,7 @@ export function CreateUserForm({ open, onOpenChange, onSuccess }: CreateUserForm
                   value={formData.email}
                   onChange={(e) => handleChange("email", e.target.value)}
                   className={`h-9 ${errors.email ? "border-danger" : ""}`}
-                  disabled={loading}
+                  disabled={hookLoading}
                 />
                 {errors.email && (
                   <p className="text-xs text-danger">{errors.email}</p>
@@ -213,7 +223,7 @@ export function CreateUserForm({ open, onOpenChange, onSuccess }: CreateUserForm
                   value={formData.username}
                   onChange={(e) => handleChange("username", e.target.value)}
                   className={`h-9 ${errors.username ? "border-danger" : ""}`}
-                  disabled={loading}
+                  disabled={hookLoading}
                 />
                 {errors.username && (
                   <p className="text-xs text-danger">{errors.username}</p>
@@ -232,13 +242,13 @@ export function CreateUserForm({ open, onOpenChange, onSuccess }: CreateUserForm
                     value={formData.password}
                     onChange={(e) => handleChange("password", e.target.value)}
                     className={`h-9 pr-10 ${errors.password ? "border-danger" : ""}`}
-                    disabled={loading}
+                    disabled={hookLoading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary transition-colors"
-                    disabled={loading}
+                    disabled={hookLoading}
                   >
                     {showPassword ? (
                       <EyeOff className="w-4 h-4" />
@@ -264,7 +274,7 @@ export function CreateUserForm({ open, onOpenChange, onSuccess }: CreateUserForm
                   value={formData.firstName}
                   onChange={(e) => handleChange("firstName", e.target.value)}
                   className={`h-9 ${errors.firstName ? "border-danger" : ""}`}
-                  disabled={loading}
+                  disabled={hookLoading}
                 />
                 {errors.firstName && (
                   <p className="text-xs text-danger">{errors.firstName}</p>
@@ -280,7 +290,7 @@ export function CreateUserForm({ open, onOpenChange, onSuccess }: CreateUserForm
                   value={formData.lastName}
                   onChange={(e) => handleChange("lastName", e.target.value)}
                   className={`h-9 ${errors.lastName ? "border-danger" : ""}`}
-                  disabled={loading}
+                  disabled={hookLoading}
                 />
                 {errors.lastName && (
                   <p className="text-xs text-danger">{errors.lastName}</p>
@@ -293,10 +303,10 @@ export function CreateUserForm({ open, onOpenChange, onSuccess }: CreateUserForm
             <Button
               type="submit"
               className="bg-primary hover:bg-primary-dark"
-              disabled={loading}
+              disabled={hookLoading}
               size="sm"
             >
-              {loading ? (
+              {hookLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Creating...
