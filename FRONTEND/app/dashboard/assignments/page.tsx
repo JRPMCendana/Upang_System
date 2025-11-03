@@ -17,6 +17,16 @@ import { EditAssignmentDialog } from "@/components/dialogs/edit-assignment-dialo
 import { SubmitAssignmentDialog } from "@/components/dialogs/submit-assignment-dialog"
 import type { Assignment } from "@/types/assignment.types"
 import { formatDateTime } from "@/utils/date.utils"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export default function AssignmentsPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
@@ -27,6 +37,7 @@ export default function AssignmentsPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false)
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null)
+  const [assignmentToUnsubmit, setAssignmentToUnsubmit] = useState<{ id: string; title: string } | null>(null)
 
   const {
     assignments,
@@ -84,6 +95,15 @@ export default function AssignmentsPage() {
     if (result) {
       // Refresh assignments to get updated status
       fetchAssignments()
+    }
+  }
+
+  const confirmUnsubmit = async () => {
+    if (!assignmentToUnsubmit) return
+    const result = await unsubmitAssignment(assignmentToUnsubmit.id)
+    if (result) {
+      fetchAssignments()
+      setAssignmentToUnsubmit(null)
     }
   }
 
@@ -391,7 +411,7 @@ export default function AssignmentsPage() {
                                   disabled={isPastDue && !assignment.submission?.isSubmitted}
                                   onClick={() => {
                                     if (assignment.submission?.isSubmitted) {
-                                      handleUnsubmitAssignment(assignment._id)
+                                      setAssignmentToUnsubmit({ id: assignment._id, title: assignment.title })
                                     } else {
                                       handleOpenSubmitDialog(assignment)
                                     }
@@ -440,6 +460,33 @@ export default function AssignmentsPage() {
         onSubmit={handleSubmitAssignment}
         assignment={selectedAssignment}
       />
+
+      {/* Unsubmit Confirmation Dialog */}
+      <AlertDialog open={!!assignmentToUnsubmit} onOpenChange={(open) => !open && setAssignmentToUnsubmit(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unsubmit Assignment</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to unsubmit your submission for{" "}
+              <strong className="text-foreground">{assignmentToUnsubmit?.title}</strong>?
+              <br />
+              <br />
+              This will remove your submitted file and you will need to submit again before the due date.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setAssignmentToUnsubmit(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmUnsubmit}
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              Unsubmit
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

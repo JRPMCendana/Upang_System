@@ -22,6 +22,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export default function QuizzesPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
@@ -31,6 +41,7 @@ export default function QuizzesPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false)
   const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null)
+  const [quizToUnsubmit, setQuizToUnsubmit] = useState<{ id: string; title: string } | null>(null)
   
   // Use the quiz hook with auto-fetch enabled
   const { 
@@ -105,6 +116,15 @@ export default function QuizzesPage() {
     const result = await unsubmitQuiz(quizId)
     if (result) {
       fetchQuizzes()
+    }
+  }
+
+  const confirmUnsubmit = async () => {
+    if (!quizToUnsubmit) return
+    const result = await unsubmitQuiz(quizToUnsubmit.id)
+    if (result) {
+      fetchQuizzes()
+      setQuizToUnsubmit(null)
     }
   }
 
@@ -409,7 +429,7 @@ export default function QuizzesPage() {
                                 size="sm"
                                 onClick={() => {
                                   if (isSubmitted) {
-                                    handleUnsubmitQuiz(quiz._id)
+                                    setQuizToUnsubmit({ id: quiz._id, title: quiz.title })
                                   } else {
                                     handleOpenSubmitDialog(quiz)
                                   }
@@ -454,6 +474,33 @@ export default function QuizzesPage() {
         onSubmit={handleSubmitQuiz}
         loading={loading}
       />
+
+      {/* Unsubmit Confirmation Dialog */}
+      <AlertDialog open={!!quizToUnsubmit} onOpenChange={(open) => !open && setQuizToUnsubmit(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unsubmit Quiz</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to unsubmit your submission for{" "}
+              <strong className="text-foreground">{quizToUnsubmit?.title}</strong>?
+              <br />
+              <br />
+              This will remove your submitted file and you will need to submit again before the due date.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setQuizToUnsubmit(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmUnsubmit}
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              Unsubmit
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

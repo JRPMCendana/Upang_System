@@ -19,6 +19,16 @@ import { getUserFullName } from "@/utils/user.utils"
 import { FileViewerDialog } from "@/components/dialogs/file-viewer-dialog"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export default function ExamsPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
@@ -37,6 +47,7 @@ export default function ExamsPage() {
   const [viewerFileId, setViewerFileId] = useState<string>("")
   const [viewerFileName, setViewerFileName] = useState<string>("")
   const [viewerFileType, setViewerFileType] = useState<string | undefined>(undefined)
+  const [examToUnsubmit, setExamToUnsubmit] = useState<{ id: string; title: string } | null>(null)
 
   useEffect(() => {
     if (authLoading) return
@@ -106,6 +117,21 @@ export default function ExamsPage() {
     const result = await createExam(data, file)
     if (result) {
       setCreateDialogOpen(false)
+    }
+  }
+
+  const confirmUnsubmit = async () => {
+    if (!examToUnsubmit) return
+    try {
+      await examService.unsubmitExam(examToUnsubmit.id)
+      setSubmissionByExamId((prev) => {
+        const n = { ...prev }
+        delete n[examToUnsubmit.id]
+        return n
+      })
+      setExamToUnsubmit(null)
+    } catch (error) {
+      console.error("Failed to unsubmit exam:", error)
     }
   }
 
@@ -252,7 +278,7 @@ export default function ExamsPage() {
                               View Submissions
                             </Button>
                           ) : submissionByExamId[exam._id] ? (
-                            <Button variant="secondary" size="sm" onClick={async () => { await examService.unsubmitExam(exam._id); setSubmissionByExamId((prev) => { const n = { ...prev }; delete n[exam._id]; return n; }); }}>
+                            <Button variant="secondary" size="sm" onClick={() => setExamToUnsubmit({ id: exam._id, title: exam.title })}>
                               Unsubmit
                             </Button>
                           ) : (
@@ -307,6 +333,33 @@ export default function ExamsPage() {
           onUpdated={async () => { await fetchExams() }}
         />
       )}
+
+      {/* Unsubmit Confirmation Dialog */}
+      <AlertDialog open={!!examToUnsubmit} onOpenChange={(open) => !open && setExamToUnsubmit(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unsubmit Exam</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to unsubmit your submission for{" "}
+              <strong className="text-foreground">{examToUnsubmit?.title}</strong>?
+              <br />
+              <br />
+              This will remove your submitted file and you will need to submit again before the due date.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setExamToUnsubmit(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmUnsubmit}
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              Unsubmit
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
