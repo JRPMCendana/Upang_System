@@ -113,7 +113,14 @@ class AnalyticsService {
 
       const assignmentIds = assignments.map(a => a._id);
 
-      // Get all submissions for these assignments
+      let expectedSubmissions = 0;
+      assignments.forEach(assignment => {
+        if (assignment.assignedTo && Array.isArray(assignment.assignedTo)) {
+          expectedSubmissions += assignment.assignedTo.length;
+        }
+      });
+
+
       const submissions = await AssignmentSubmission.find({
         assignment: { $in: assignmentIds }
       }).populate('assignment', 'dueDate');
@@ -122,26 +129,39 @@ class AnalyticsService {
       let late = 0;
       let notSubmitted = 0;
 
+      // Create a map of existing submissions for quick lookup
+      const submissionMap = new Map();
       submissions.forEach(sub => {
-        if (!sub.isSubmitted) {
-          notSubmitted++;
-        } else if (sub.assignment.dueDate && sub.submittedAt) {
-          // Compare submission date with due date
-          if (new Date(sub.submittedAt) <= new Date(sub.assignment.dueDate)) {
-            onTime++;
+        const key = `${sub.assignment._id.toString()}_${sub.student.toString()}`;
+        submissionMap.set(key, sub);
+      });
+
+      // Count submitted submissions
+      submissions.forEach(sub => {
+        if (sub.isSubmitted) {
+          if (sub.assignment.dueDate && sub.submittedAt) {
+            // Compare submission date with due date
+            if (new Date(sub.submittedAt) <= new Date(sub.assignment.dueDate)) {
+              onTime++;
+            } else {
+              late++;
+            }
           } else {
-            late++;
+            // If no due date, consider it on time if submitted
+            onTime++;
           }
-        } else {
-          // If no due date, consider it on time if submitted
-          onTime++;
         }
       });
 
-      const total = submissions.length;
-      const onTimePercentage = total > 0 ? Math.round((onTime / total) * 100) : 0;
-      const latePercentage = total > 0 ? Math.round((late / total) * 100) : 0;
-      const notSubmittedPercentage = total > 0 ? Math.round((notSubmitted / total) * 100) : 0;
+      // Calculate not submitted: expected - (onTime + late)
+      // This accounts for students who haven't submitted yet
+      const submittedCount = onTime + late;
+      notSubmitted = Math.max(0, expectedSubmissions - submittedCount);
+
+      const total = expectedSubmissions; // Total should be expected submissions
+      const onTimePercentage = total > 0 ? Math.round((onTime / total) * 100 * 100) / 100 : 0;
+      const latePercentage = total > 0 ? Math.round((late / total) * 100 * 100) / 100 : 0;
+      const notSubmittedPercentage = total > 0 ? Math.round((notSubmitted / total) * 100 * 100) / 100 : 0;
 
       return {
         onTime,
@@ -166,20 +186,12 @@ class AnalyticsService {
     }
   }
 
-  /**
-   * Get content upload activity per week
-   * For Chart 3: Column Chart showing teaching activity over time
-   * @param {string} teacherId - Teacher ID
-   * @param {number} weeks - Number of weeks to look back (default: 12)
-   * @returns {Promise<Array>} Weekly upload activity data
-   */
   static async getWeeklyContentActivity(teacherId, weeks = 12) {
     try {
       const now = new Date();
       const startDate = new Date(now);
       startDate.setDate(startDate.getDate() - (weeks * 7));
 
-      // Get all content created by teacher in the time period
       const [assignments, quizzes, exams] = await Promise.all([
         Assignment.find({
           assignedBy: teacherId,
@@ -202,10 +214,8 @@ class AnalyticsService {
         ...exams.map(e => ({ ...e, type: 'exam' }))
       ];
 
-      // Group by week
       const weeklyData = new Map();
 
-      // Initialize all weeks
       for (let i = 0; i < weeks; i++) {
         const weekStart = new Date(now);
         weekStart.setDate(weekStart.getDate() - (i * 7));

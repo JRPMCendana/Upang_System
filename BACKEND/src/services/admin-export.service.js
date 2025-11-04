@@ -648,12 +648,20 @@ class AdminExportService {
    */
   static async exportKPI_SubmissionTimelinessCSV() {
     try {
-      // Get all assignments with due dates
+      // Get all assignments with due dates, including assignedTo array
       const assignments = await Assignment.find({ dueDate: { $ne: null } })
-        .select('_id')
+        .select('_id assignedTo')
         .lean();
 
       const assignmentIds = assignments.map(a => a._id);
+
+      // Calculate expected submissions: sum of all students assigned to each assignment
+      let expectedSubmissions = 0;
+      assignments.forEach(assignment => {
+        if (assignment.assignedTo && Array.isArray(assignment.assignedTo)) {
+          expectedSubmissions += assignment.assignedTo.length;
+        }
+      });
 
       // Get all submissions for these assignments
       const submissions = await AssignmentSubmission.find({
@@ -680,14 +688,11 @@ class AdminExportService {
         }
       });
 
-      // Count not submitted (assignments that have due dates but no submissions)
-      const totalAssignments = assignments.length;
-      const studentsCount = await User.countDocuments({ role: 'student' });
-      const expectedSubmissions = totalAssignments * studentsCount;
-      const actualSubmissions = submissions.length;
-      const notSubmitted = expectedSubmissions - actualSubmissions;
+      // Calculate not submitted: expected - (onTime + late)
+      const submittedCount = onTime + late;
+      const notSubmitted = Math.max(0, expectedSubmissions - submittedCount);
 
-      const total = onTime + late + notSubmitted;
+      const total = expectedSubmissions; // Total should be expected submissions
 
       // Calculate percentages
       const onTimePercentage = total > 0 ? ((onTime / total) * 100).toFixed(2) : 0;
