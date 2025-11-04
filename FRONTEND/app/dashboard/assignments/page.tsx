@@ -301,12 +301,6 @@ export default function AssignmentsPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                               <h3 className="text-lg font-semibold">{assignment.title}</h3>
-                              <Badge className={`${statusColor.bg} ${statusColor.text}`}>
-                                <span className="flex items-center gap-1">
-                                  {getStatusIcon(displayStatus)}
-                                  {statusColor.label}
-                                </span>
-                              </Badge>
                             </div>
                             {assignment.course && (
                               <p className="text-sm text-text-secondary mb-2">{assignment.course.title}</p>

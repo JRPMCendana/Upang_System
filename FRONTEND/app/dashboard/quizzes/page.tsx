@@ -6,7 +6,7 @@ import { Header } from "@/components/dashboard/header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { ClipboardList, Search, Plus, Clock, MoreVertical, FileText, Download, Edit, Trash, ExternalLink, CheckCircle } from "lucide-react"
+import { ClipboardList, Search, Plus, Clock, MoreVertical, FileText, Download, Edit, ExternalLink, CheckCircle } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -50,7 +50,6 @@ export default function QuizzesPage() {
     initialLoading,
     createQuiz,
     updateQuiz,
-    deleteQuiz,
     submitQuiz,
     unsubmitQuiz,
     downloadQuizFile,
@@ -91,15 +90,6 @@ export default function QuizzesPage() {
     if (result) {
       setEditDialogOpen(false)
       setSelectedQuiz(null)
-    }
-  }
-
-  const handleDeleteQuiz = async (id: string) => {
-    if (confirm("Are you sure you want to delete this quiz?")) {
-      const result = await deleteQuiz(id)
-      if (result) {
-        fetchQuizzes()
-      }
     }
   }
 
@@ -260,9 +250,6 @@ export default function QuizzesPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1 flex-wrap">
                               <h3 className="text-lg font-semibold">{quiz.title}</h3>
-                              <Badge className={`${statusBadge.bg} ${statusBadge.text}`}>
-                                {statusBadge.label}
-                              </Badge>
                             </div>
                             {quiz.description && (
                               <p className="text-sm text-text-secondary mb-2 line-clamp-2">{quiz.description}</p>
@@ -280,13 +267,6 @@ export default function QuizzesPage() {
                               <DropdownMenuItem onClick={() => handleOpenEditDialog(quiz)}>
                                 <Edit className="w-4 h-4 mr-2" />
                                 Edit Quiz
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => handleDeleteQuiz(quiz._id)}
-                                className="text-destructive"
-                              >
-                                <Trash className="w-4 h-4 mr-2" />
-                                Delete Quiz
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

@@ -132,33 +132,6 @@ export function useQuizzes(options: UseQuizzesOptions = {}) {
     }
   }, [toast, fetchQuizzes])
 
-  // Delete quiz (teacher only)
-  const deleteQuiz = useCallback(async (id: string) => {
-    setLoading(true)
-    try {
-      await quizService.deleteQuiz(id)
-      
-      toast({
-        title: "Success",
-        description: "Quiz deleted successfully!",
-      })
-
-      // Refresh quizzes
-      await fetchQuizzes()
-      return true
-    } catch (error: any) {
-      console.error("Error deleting quiz:", error)
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete quiz",
-        variant: "destructive",
-      })
-      return false
-    } finally {
-      setLoading(false)
-    }
-  }, [toast, fetchQuizzes])
-
   // Submit quiz (student only)
   const submitQuiz = useCallback(async (id: string, file: File) => {
     setLoading(true)
@@ -408,7 +381,6 @@ export function useQuizzes(options: UseQuizzesOptions = {}) {
     fetchQuizById,
     createQuiz,
     updateQuiz,
-    deleteQuiz,
     submitQuiz,
     unsubmitQuiz,
     replaceSubmission,

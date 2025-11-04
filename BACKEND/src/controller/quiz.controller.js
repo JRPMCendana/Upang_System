@@ -199,28 +199,6 @@ class QuizController {
     }
   }
 
-  static async deleteQuiz(req, res, next) {
-    try {
-      const { quizId } = req.params;
-      const teacherId = req.user.id;
-
-      if (!quizId) {
-        return res.status(400).json({
-          error: 'Validation Error',
-          message: 'Quiz ID is required'
-        });
-      }
-
-      const result = await QuizService.deleteQuiz(quizId, teacherId);
-
-      res.status(200).json({
-        success: true,
-        message: result.message
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
 }
 
 module.exports = QuizController;

@@ -7,7 +7,7 @@ const authMiddleware = require('../middleware/auth.middleware');
 const { authorize } = require('../middleware/auth.middleware');
 const { upload, quizSubmissionUpload } = require('../middleware/upload.middleware');
 
-// Teacher & Admin routes - create, update, delete quizzes
+// Teacher & Admin routes - create, update quizzes
 router.post('/', authMiddleware, authorize('teacher', 'administrator'), upload.single('document'), QuizController.createQuiz);
 
 router.get('/', authMiddleware, authorize('teacher', 'student', 'administrator'), QuizController.getQuizzes);
@@ -15,8 +15,6 @@ router.get('/', authMiddleware, authorize('teacher', 'student', 'administrator')
 router.get('/:quizId', authMiddleware, authorize('teacher', 'student', 'administrator'), QuizController.getQuizById);
 
 router.put('/:quizId', authMiddleware, authorize('teacher', 'administrator'), upload.single('document'), QuizController.updateQuiz);
-
-router.delete('/:quizId', authMiddleware, authorize('teacher', 'administrator'), QuizController.deleteQuiz);
 
 // Student routes - submit quiz, unsubmit, replace submission, get own submission
 router.post('/:quizId/submit', authMiddleware, authorize('student'), quizSubmissionUpload.single('file'), QuizSubmissionController.submitQuiz);

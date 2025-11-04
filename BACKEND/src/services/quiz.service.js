@@ -483,50 +483,6 @@ class QuizService {
     }
   }
 
-  static async deleteQuiz(quizId, teacherId) {
-    try {
-      const quiz = await Quiz.findById(quizId);
-      if (!quiz) {
-        throw {
-          status: 404,
-          message: 'Quiz not found'
-        };
-      }
-
-      // Verify teacher owns this quiz
-      if (quiz.assignedBy.toString() !== teacherId.toString()) {
-        throw {
-          status: 403,
-          message: 'Access denied. You can only delete your own quizzes.'
-        };
-      }
-
-      // Delete associated file from GridFS if exists
-      if (quiz.document) {
-        try {
-          await deleteFileFromGridFS(quiz.document);
-        } catch (error) {
-          console.error('Error deleting file from GridFS:', error);
-          // Continue with quiz deletion even if file deletion fails
-        }
-      }
-
-      await Quiz.findByIdAndDelete(quizId);
-
-      return { message: 'Quiz deleted successfully' };
-    } catch (error) {
-      if (error.status) {
-        throw error;
-      }
-
-      const dbError = DbUtils.handleError(error);
-      throw {
-        status: dbError.status,
-        message: dbError.message || 'Failed to delete quiz'
-      };
-    }
-  }
-
   static async getAllQuizzes(page = 1, limit = 10, teacherId = null) {
     try {
       const pageNum = parseInt(page, 10);

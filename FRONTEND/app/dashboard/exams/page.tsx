@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 import { formatDate } from "@/utils/date.utils"
-import { ClipboardList, Plus, Loader2, Upload, Search, FileImage, CheckCircle, MoreVertical, PenLine } from "lucide-react"
+import { ClipboardList, Plus, Loader2, Upload, Search, FileImage, CheckCircle, MoreVertical, Edit } from "lucide-react"
 import { useExams } from "@/hooks/use-exams"
 import { CreateExamDialog } from "@/components/dialogs/create-exam-dialog"
 import { EditExamDialog } from "@/components/dialogs/edit-exam-dialog"
@@ -120,6 +120,18 @@ export default function ExamsPage() {
     }
   }
 
+  const handleOpenEditDialog = (exam: any) => {
+    setSelectedExamId(exam._id)
+    setEditingExamInitial({
+      title: exam.title,
+      description: exam.description || "",
+      dueDate: exam.dueDate ? new Date(exam.dueDate).toISOString().slice(0, 16) : null,
+      totalPoints: exam.totalPoints || 100,
+      documentName: exam.documentName || null
+    })
+    setEditDialogOpen(true)
+  }
+
   const confirmUnsubmit = async () => {
     if (!examToUnsubmit) return
     try {
@@ -199,7 +211,6 @@ export default function ExamsPage() {
                           <div>
                             <div className="flex items-center gap-2 flex-wrap">
                               <h3 className="text-lg font-semibold">{exam.title}</h3>
-                              <span className="text-xs text-text-secondary">Active</span>
                               {submissionByExamId[exam._id] && (
                                 <Badge className="bg-green-500/10 text-green-600 flex items-center gap-1">
                                   <CheckCircle className="w-3 h-3" /> Submitted
@@ -211,6 +222,21 @@ export default function ExamsPage() {
                             )}
                           </div>
                         </div>
+                        {isTeacher && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="text-text-secondary shrink-0">
+                                <MoreVertical className="w-5 h-5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleOpenEditDialog(exam)}>
+                                <Edit className="w-4 h-4 mr-2" />
+                                Edit Exam
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </div>
 
                       {/* Meta grid with separators like quizzes */}
@@ -276,6 +302,11 @@ export default function ExamsPage() {
                           {isTeacher ? (
                             <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/exams/${exam._id}/submissions`)}>
                               View Submissions
+                              {exam.submissionStats && (
+                                <Badge className="ml-2" variant="secondary">
+                                  {exam.submissionStats.graded}/{exam.submissionStats.total}
+                                </Badge>
+                              )}
                             </Button>
                           ) : submissionByExamId[exam._id] ? (
                             <Button variant="secondary" size="sm" onClick={() => setExamToUnsubmit({ id: exam._id, title: exam.title })}>

@@ -139,15 +139,6 @@ class QuizService {
   }
 
   /**
-   * Delete quiz (Teacher only)
-   */
-  async deleteQuiz(id: string): Promise<{ success: boolean; message: string }> {
-    return apiClient.request<{ success: boolean; message: string }>(`/quizzes/${id}`, {
-      method: "DELETE",
-    })
-  }
-
-  /**
    * Submit quiz (Student only)
    */
   async submitQuiz(id: string, file: File): Promise<{ success: boolean; message: string; data: QuizSubmission }> {
